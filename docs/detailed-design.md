@@ -162,7 +162,7 @@ io.use((socket, next) => {
 });
 ```
 
-CORS：`credentials: true`、`origin: CLIENT_ORIGIN`。
+前後端同源部署（見附錄 D），不需設定 CORS。
 
 ### 2.7 前端
 
@@ -170,7 +170,7 @@ CORS：`credentials: true`、`origin: CLIENT_ORIGIN`。
 - App 啟動時呼叫 `GET /api/auth/me`：
   - 200 → 設定 `store.user`，建立 socket 連線
   - 401 → 顯示 `AuthScreen`
-- 不於 JS 端讀寫 token（httpOnly）；socket 用 `io({ withCredentials: true })` 自動帶 cookie
+- 不於 JS 端讀寫 token（httpOnly）；同源部署下瀏覽器會自動帶上 cookie
 
 ---
 
@@ -199,18 +199,20 @@ sequenceDiagram
   participant MM as Matchmaker
   participant DE as Draft Engine
   participant DB as PostgreSQL
+  participant Lobby as All Lobby Clients
+  participant Room as Matched 5 Clients
 
   C->>MM: queue:join (via socket)
   MM->>MM: 若已在佇列則 no-op；否則 enqueue
-  MM-->>All Lobby: queue:update { size }
+  MM-->>Lobby: queue:update { size }
 
   alt queue.length >= 5
     MM->>MM: shift 5 人
     MM->>DB: INSERT rooms (status='drafting')
     MM->>DB: INSERT room_players x5
     MM->>DE: createRoom(roomId, players)
-    MM-->>5 clients: room:start { roomId }
-    MM-->>All Lobby: queue:update { size }
+    MM-->>Room: room:start { roomId }
+    MM-->>Lobby: queue:update { size }
   end
 ```
 
@@ -242,7 +244,7 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
   [*] --> initial_pick: 建房 + 隨機分配
-  initial_pick --> bench_trade: 全員已選 OR 倒數到 0（未選者隨機補一）
+  initial_pick --> bench_trade: 倒數到 0（未選者隨機補一）
   bench_trade --> lock_in: 倒數到 0
   lock_in --> done: 3s 動畫結束 + 寫入 draft_results
   done --> [*]
@@ -262,6 +264,7 @@ interface RoomState {
   roomId: string;
   phase: Phase;
   phaseEndsAt: number;          // epoch ms，server-authoritative
+  serverNow: number;            // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
   players: PlayerState[];        // 5 人
   bench: string[];               // 階段 2 可挑英雄
   pendingTrade: TradeRequest | null;
@@ -288,8 +291,10 @@ interface PlayerState {
 
 - 進入新階段時：`phaseEndsAt = Date.now() + duration`
 - 啟動 `setTimeout(duration)` 觸發階段切換
-- 廣播 `room:phase { phase, phaseEndsAt }`；前端用 `phaseEndsAt` 自行計算剩餘秒數，**不依賴 server tick**
-- 提前完成（如階段 1 全員已選）→ 清除舊 timer、立即推進
+- 廣播 `room:phase { phase, phaseEndsAt, serverNow }`；前端用 `phaseEndsAt` 自行計算剩餘秒數，**不依賴 server tick**
+- 前端以 `serverNow` 校正 client 時鐘偏移：`offset = serverNow - Date.now()`，之後 `remaining = phaseEndsAt - (Date.now() + offset)`
+- 斷線重連：client 收到 `room:state` 後直接用同樣公式重算剩餘時間，無需額外同步
+- 階段切換一律等 `setTimeout` 到時觸發，不做提前完成
 - 階段時長依 proposal §4.1：Initial Pick 15s、Bench & Trade 45s、Lock-in 3s
 
 ### 4.6 階段 1：Initial Pick
@@ -300,8 +305,7 @@ interface PlayerState {
   - `championId ∈ player.allocated`
   - `player.currentChampion === null`（不可改選）
 - 寫入 `currentChampion`、廣播 `room:state`
-- 全員 `currentChampion !== null` → 立即進入階段 2
-- 倒數到 0：未選者由 server 從 `allocated` 隨機補一
+- 倒數到 0 才進入階段 2；未選者由 server 從 `allocated` 隨機補一
 
 ### 4.7 階段 2：Bench & Trade
 
@@ -361,8 +365,8 @@ interface TradeRequest {
 
 ### 5.3 規則
 
-- 每位玩家最多 1 筆 outbound + 1 筆 inbound（proposal §4.2）
-- 申請建立後，雙方在解析前不可發 `pick:bench` 或新 `trade:request`（鎖定）
+- 每位玩家任意時刻最多涉入 1 筆 pending trade（不分發起方或接收方）（proposal §4.2）
+- 申請建立後，雙方在解析前不可發 `pick:bench`、發起新 `trade:request`、或接收他人的 `trade:request`（鎖定）
 - 10 秒超時 → 自動視為拒絕
 
 ### 5.4 交換流程
@@ -374,7 +378,7 @@ sequenceDiagram
   participant B as Client B
 
   A->>S: trade:request { targetUserId=B, offer, want }
-  S->>S: 驗證（A 持有 offer? B 持有 want? 雙方無 pending?）
+  S->>S: 驗證（A 持有 offer? B 持有 want? A、B 皆無任何 pending trade?）
   alt 驗證失敗
     S-->>A: error { code }
   else 驗證通過
@@ -385,12 +389,14 @@ sequenceDiagram
     alt B 接受
       B->>S: trade:respond { tradeId, accept=true }
       S->>S: 原子互換 A.currentChampion ↔ B.currentChampion
-      S-->>All: trade:resolved { tradeId, accepted=true }
+      S-->>A: trade:resolved { tradeId, accepted=true }
+      S-->>B: trade:resolved { tradeId, accepted=true }
       S-->>All: room:state
     else B 拒絕 / 10s 逾時
       B->>S: trade:respond { tradeId, accept=false }
       Note over S: 或 expiresAt 到期
-      S-->>All: trade:resolved { tradeId, accepted=false }
+      S-->>A: trade:resolved { tradeId, accepted=false }
+      S-->>B: trade:resolved { tradeId, accepted=false }
     end
     S->>S: 解除鎖定
   end
@@ -399,7 +405,9 @@ sequenceDiagram
 ### 5.5 競態處理
 
 - 所有 trade / pick 事件在單一 room 物件內 **sequential 處理**（Node.js 單執行緒 event loop，不需鎖原語）
-- 「A 與 C 同時對 B 發起申請」：先到達的成功建立 inbound；後到達者收到 `error { code: 'target-busy' }`
+- 「A 與 C 同時對 B 發起申請」：先到達的成功建立鎖定 B；後到達者收到 `error { code: 'target-busy' }`
+- 「A 已有 pending（無論發起或接收），又發 `trade:request`」：拒絕，回 `error { code: 'has-pending-trade' }`
+- 「A 已有 pending，C 嘗試對 A 發起」：拒絕，回 `error { code: 'target-busy' }`
 - 「申請建立後 A 嘗試 pick:bench」：拒絕，回 `error { code: 'has-pending-trade' }`
 - 申請建立的瞬間 snapshot 雙方 `currentChampion`；解析時雙方持有的英雄與 snapshot 一致才能成立（防超詭異邊界）
 
@@ -410,6 +418,15 @@ sequenceDiagram
 | 方向 | 事件            | Payload          | 說明                       |
 | ---- | --------------- | ---------------- | -------------------------- |
 | S→C  | `trade:pending` | `{ tradeId }`    | 對發起方確認申請已建立     |
+
+**廣播範圍**：
+
+| 事件              | 收件對象       | 說明                                                        |
+| ----------------- | -------------- | ----------------------------------------------------------- |
+| `trade:incoming`  | 接收方 B       | 只有被申請者需要彈窗                                        |
+| `trade:pending`   | 發起方 A       | 只有發起者需要「等待回應中」狀態                            |
+| `trade:resolved`  | 雙方 A、B      | 用於關閉 modal / 顯示結果；其他玩家未知此交易存在，不需發送 |
+| `room:state`      | 房內全員       | 接受成功時棋盤狀態改變，其他玩家靠這個看到英雄互換          |
 
 ---
 
@@ -500,35 +517,60 @@ function App() {
 
 ### 7.3 Zustand store 切片
 
+採用 **單一 store + slice pattern**（Zustand 官方推薦）：對外仍是一個 `useAppStore`，內部按 domain 拆成獨立 slice 檔，PR review 容易、跨 slice 仍可互通（例如 `logout` 一次重置多個切片）。
+
 ```ts
-interface AppStore {
-  // Auth
+// stores/authSlice.ts
+export interface AuthSlice {
   user: { id: string; username: string } | null;
   setUser(u: User | null): void;
+  logout(): void;            // 同時清空 room / lobby 等
+}
 
-  // Champions（啟動時載入後不變）
+// stores/championsSlice.ts（啟動時載入後不變）
+export interface ChampionsSlice {
   champions: Record<string, Champion>;
   setChampions(list: Champion[]): void;
+}
 
-  // Lobby
+// stores/lobbySlice.ts
+export interface LobbySlice {
   queueSize: number;
   inQueue: boolean;
+  setQueue(size: number, inQueue: boolean): void;
+}
 
-  // Room
+// stores/roomSlice.ts
+export interface RoomSlice {
   currentRoom: RoomState | null;
   pendingTradeIncoming: TradeRequest | null;
   pendingTradeOutgoing: { tradeId: string } | null;
   setRoomState(s: RoomState): void;
-  applyPhaseChange(phase: Phase, phaseEndsAt: number): void;
+  applyPhaseChange(phase: Phase, phaseEndsAt: number, serverNow: number): void;
+}
 
-  // Socket
+// stores/socketSlice.ts
+export interface SocketSlice {
   socket: Socket | null;
   connect(): void;
   disconnect(): void;
 }
+
+// stores/index.ts
+export type AppStore = AuthSlice & ChampionsSlice & LobbySlice & RoomSlice & SocketSlice;
+
+export const useAppStore = create<AppStore>()((...a) => ({
+  ...createAuthSlice(...a),
+  ...createChampionsSlice(...a),
+  ...createLobbySlice(...a),
+  ...createRoomSlice(...a),
+  ...createSocketSlice(...a),
+}));
 ```
 
-各元件透過 selector 訂閱對應切片（避免全樹 re-render）：
+每個 slice 透過 `StateCreator<AppStore, [], [], XxxSlice>` 定義，仍可在 action 內以 `set` 修改 `AppStore` 任一欄位（解決跨 slice 重置 / 連動需求）。
+
+各元件透過 selector 訂閱對應欄位（避免全樹 re-render）：
 
 | 元件          | 訂閱                              |
 | ------------- | --------------------------------- |
@@ -562,7 +604,7 @@ interface Champion {
 
 ### 7.5 Socket 連線生命週期
 
-- 登入成功 / `auth/me` 200 → `store.connect()` → `io({ withCredentials: true })`
+- 登入成功 / `auth/me` 200 → `store.connect()` → `io()`（同源連線，cookie 自動帶上）
 - 登出 / 401 → `store.disconnect()`
 - 所有 server-push 事件 handler 直接呼叫 store setter（在 React 樹外更新狀態）
 
@@ -580,7 +622,7 @@ interface Champion {
 | S→C  | `room:start`          | `{ roomId }`                                               | Matchmaking  |
 | C→S  | `room:join`           | `{ roomId }`                                               | Realtime     |
 | S→C  | `room:state`          | `RoomState`                                                | Draft Engine |
-| S→C  | `room:phase`          | `{ phase, phaseEndsAt }`                                   | Draft Engine |
+| S→C  | `room:phase`          | `{ phase, phaseEndsAt, serverNow }`                        | Draft Engine |
 | C→S  | `pick:initial`        | `{ championId }`                                           | Draft Engine |
 | C→S  | `pick:bench`          | `{ championId }`                                           | Draft Engine |
 | C→S  | `trade:request`       | `{ targetUserId, offerChampionId, wantChampionId }`        | Trade        |
@@ -614,5 +656,61 @@ interface Champion {
 | --------------- | ----------------------------------- | -------------------------------------- |
 | `DATABASE_URL`  | Postgres 連線字串                   | `postgres://user:pass@localhost/draft` |
 | `JWT_SECRET`    | JWT 簽章密鑰                        | 64-byte 隨機字串                       |
-| `CLIENT_ORIGIN` | 前端 origin（CORS / cookie 用）      | `https://draft.example.com`            |
 | `NODE_ENV`      | `development` / `production`        | `production`                           |
+
+---
+
+## 附錄 D：同源部署策略
+
+前後端統一在同一個 origin 對外暴露，瀏覽器視角永遠是同源，**不需處理 CORS、不需設定 `withCredentials`、cookie 自動帶上**。
+
+### Dev：Vite proxy
+
+`vite.config.ts`：
+
+```ts
+export default {
+  server: {
+    proxy: {
+      '/api':       'http://localhost:3000',
+      '/socket.io': { target: 'http://localhost:3000', ws: true }
+    }
+  }
+}
+```
+
+- 前端打 `/api/...`、`/socket.io/...`，Vite dev server 轉發到後端
+- `ws: true` 必須加，否則 WebSocket upgrade 不會被代理
+
+### Prod：nginx 反向代理
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name draft.example.com;
+
+  location / {
+    root /var/www/dist;
+    try_files $uri /index.html;
+  }
+
+  location /api/ {
+    proxy_pass http://localhost:3000;
+  }
+
+  location /socket.io/ {
+    proxy_pass http://localhost:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+- 前端靜態檔與 API 走同一個 host
+- `/socket.io/` 三行 header 為 WebSocket 升級必需
+
+### 後端 cookie 設定（同源前提下）
+
+- `httpOnly: true`、`secure: true`（prod）、`sameSite: 'Lax'`、`path: '/'`
+- 不需要 `sameSite: 'None'`、不需要設定 `domain`
