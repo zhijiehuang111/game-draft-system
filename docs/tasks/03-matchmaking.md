@@ -9,7 +9,7 @@
 ## 子任務
 
 ### 後端 Matchmaker
-- [ ] `packages/server/src/matchmaking/Matchmaker.ts`：
+- [ ] `apps/server/src/matchmaking/Matchmaker.ts`：
   - [ ] `queue: Array<{ userId, socketId, joinedAt }>`
   - [ ] `inQueue: Map<string, true>`
   - [ ] `join(userId, socketId)`：重複加入回 no-op；否則 enqueue + 廣播
@@ -28,7 +28,7 @@
 - [ ] 廣播策略：對全 lobby（namespace 預設 `/`）廣播 size，個別 emit position 給對應使用者
 
 ### 前端 Lobby
-- [ ] `packages/client/src/screens/LobbyScreen.tsx`：顯示佇列人數、加入 / 離開按鈕、登出按鈕
+- [ ] `apps/client/src/screens/LobbyScreen.tsx`：顯示佇列人數、加入 / 離開按鈕、登出按鈕
 - [ ] `lobbySlice`：`queueSize`、`inQueue`、`setQueue(size, inQueue)`
 - [ ] socket handler：訂閱 `queue:update` 寫入 store
 - [ ] 「加入佇列」→ `socket.emit('queue:join')`、「離開佇列」→ `socket.emit('queue:leave')`

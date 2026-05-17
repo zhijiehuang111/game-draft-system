@@ -9,12 +9,12 @@
 ## 子任務
 
 ### Socket.IO 基礎
-- [ ] `packages/server/src/realtime/io.ts`：建立 `Server`、整合 express http server
+- [ ] `apps/server/src/realtime/io.ts`：建立 `Server`、整合 express http server
 - [ ] 套用 auth middleware（模組 2 已提供）
 - [ ] 預設 namespace `/` 用於 lobby；本專案 MVP 可只用預設 namespace，房間以 socket.io room 隔離（避免雙 namespace 維護成本）
 
 ### Registry
-- [ ] `packages/server/src/realtime/RealtimeRegistry.ts`：
+- [ ] `apps/server/src/realtime/RealtimeRegistry.ts`：
   - [ ] `socketByUser: Map<userId, socketId>`
   - [ ] `roomByUser: Map<userId, roomId>`
   - [ ] `bind(userId, socketId)`：若舊 socketId 存在則 disconnect 舊 socket

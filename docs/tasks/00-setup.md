@@ -4,15 +4,32 @@
 >
 > 這是所有模組的前置依賴，必須最先完成。
 
+## 目錄結構
+
+```
+game-draft-system/
+├── apps/
+│   ├── server/      # Express + Socket.IO
+│   └── client/      # Vite + React
+├── packages/
+│   └── shared/      # 共用型別
+├── docs/
+├── pnpm-workspace.yaml
+└── package.json
+```
+
+- `apps/`：可獨立啟動 / 部署的應用
+- `packages/`：被 apps 引用的 library（型別、未來的 config 套件等）
+
 ## 子任務
 
-- [ ] 初始化 pnpm workspaces，建立 `pnpm-workspace.yaml`
-- [ ] 建立目錄結構 `packages/{shared,server,client}` 各自 `package.json`
+- [ ] 初始化 pnpm workspaces，`pnpm-workspace.yaml` 加入 `apps/*` 與 `packages/*`
+- [ ] 建立目錄與 `package.json`：`apps/server`、`apps/client`、`packages/shared`
 - [ ] 根 `package.json` 設定共用 scripts（`dev`、`build`、`lint`、`typecheck`）
-- [ ] 設定根 `tsconfig.base.json`，三個 package 各自 `tsconfig.json` extends
+- [ ] 設定根 `tsconfig.base.json`，三個 workspace 各自 `tsconfig.json` extends
 - [ ] `packages/shared`：純 TS 套件，輸出 type-only（`SocketEvent`、`RoomState`、`Champion` 預留 export）
-- [ ] `packages/server`：安裝 `express`、`socket.io`、`pg`、`bcrypt`、`jsonwebtoken`、`cookie-parser`、`zod`、`tsx`
-- [ ] `packages/client`：`pnpm create vite` 建立 React + TS，安裝 `socket.io-client`、`zustand`、`tailwindcss`
+- [ ] `apps/server`：安裝 `express`、`socket.io`、`pg`、`bcrypt`、`jsonwebtoken`、`cookie-parser`、`zod`、`tsx`
+- [ ] `apps/client`：`pnpm create vite` 建立 React + TS，安裝 `socket.io-client`、`zustand`、`tailwindcss`
 - [ ] Tailwind 初始化（`tailwind.config.js`、`postcss.config.js`、入口 CSS `@tailwind` 指令）
 - [ ] 設定 `.env.example`（`DATABASE_URL`、`JWT_SECRET`、`NODE_ENV`、`PORT`）
 - [ ] `vite.config.ts` 配置 `/api` 與 `/socket.io`（含 `ws: true`）proxy 到後端

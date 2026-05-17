@@ -9,10 +9,10 @@
 ## 子任務
 
 ### 後端核心
-- [ ] `packages/server/src/auth/password.ts`：bcrypt cost=12 的 hash / compare
-- [ ] `packages/server/src/auth/jwt.ts`：`signToken({sub})` / `verifyToken(token)`；HS256、exp 7d
-- [ ] `packages/server/src/auth/cookies.ts`：set/clear cookie 工具（httpOnly、sameSite=Lax、secure 在 prod、path=/、maxAge=7d）
-- [ ] `packages/server/src/auth/middleware.ts`：`requireAuth`，解析 cookie → 驗 JWT → 注入 `req.userId`，失敗 401
+- [ ] `apps/server/src/auth/password.ts`：bcrypt cost=12 的 hash / compare
+- [ ] `apps/server/src/auth/jwt.ts`：`signToken({sub})` / `verifyToken(token)`；HS256、exp 7d
+- [ ] `apps/server/src/auth/cookies.ts`：set/clear cookie 工具（httpOnly、sameSite=Lax、secure 在 prod、path=/、maxAge=7d）
+- [ ] `apps/server/src/auth/middleware.ts`：`requireAuth`，解析 cookie → 驗 JWT → 注入 `req.userId`，失敗 401
 
 ### REST 路由
 - [ ] `POST /api/auth/register`：zod 驗 body（username 規則、password 長度）、查重、建 user、簽 JWT、設 cookie、回 `{ user }`
@@ -28,8 +28,8 @@
 - [ ] cookie 解析共用工具（server 端）
 
 ### 前端
-- [ ] `packages/client/src/screens/AuthScreen.tsx`：register / login 表單切換、submit 後呼叫對應 API
-- [ ] `packages/client/src/api/auth.ts`：`register`、`login`、`logout`、`getMe`（fetch，無需手動帶 token）
+- [ ] `apps/client/src/screens/AuthScreen.tsx`：register / login 表單切換、submit 後呼叫對應 API
+- [ ] `apps/client/src/api/auth.ts`：`register`、`login`、`logout`、`getMe`（fetch，無需手動帶 token）
 - [ ] App 啟動時呼叫 `getMe`：200 → store.setUser；401 → 顯示 AuthScreen
 - [ ] AuthScreen 表單驗證（前端 zod 同步規則）、錯誤訊息顯示
 - [ ] Tailwind 樣式化（沿用 monorepo 共用樣式）

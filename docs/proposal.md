@@ -33,13 +33,17 @@
 
 ```
 game-draft-system/
+├── apps/
+│   ├── server/      # Express + Socket.IO（可執行應用）
+│   └── client/      # Vite + React（可執行應用）
 ├── packages/
-│   ├── shared/      # 共用型別（Champion、Room、SocketEvent 等）
-│   ├── server/      # Express + Socket.IO
-│   └── client/      # Vite + React
-├── proposal.md
-└── package.json     # pnpm workspaces
+│   └── shared/      # 共用型別（Champion、Room、SocketEvent 等）
+├── docs/
+└── package.json     # pnpm workspaces（apps/*、packages/*）
 ```
+
+> 命名慣例：`apps/` 放可獨立啟動 / 部署的應用，`packages/` 放被 apps 引用的 library。
+> 之後若新增其他共用 lib（例如 `eslint-config`、`tsconfig`），都歸到 `packages/`。
 
 ---
 

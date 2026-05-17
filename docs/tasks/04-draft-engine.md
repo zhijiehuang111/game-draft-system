@@ -13,9 +13,9 @@
 - [ ] `GET /api/champions` 直接回傳該常數（無需 auth）
 
 ### Room runtime 資料結構
-- [ ] `packages/server/src/draft/types.ts`：對齊 §4.3 的 `Phase` / `RoomState` / `PlayerState`（與 shared 共用）
-- [ ] `packages/server/src/draft/RoomRegistry.ts`：`Map<roomId, Room>`、`getByUser(userId)`、`add`、`remove`
-- [ ] `packages/server/src/draft/Room.ts`：封裝單一房間生命週期方法（狀態、計時器、事件入口）
+- [ ] `apps/server/src/draft/types.ts`：對齊 §4.3 的 `Phase` / `RoomState` / `PlayerState`（與 shared 共用）
+- [ ] `apps/server/src/draft/RoomRegistry.ts`：`Map<roomId, Room>`、`getByUser(userId)`、`add`、`remove`
+- [ ] `apps/server/src/draft/Room.ts`：封裝單一房間生命週期方法（狀態、計時器、事件入口）
 
 ### 隨機分配
 - [ ] `allocateChampions(players, championPool)`：

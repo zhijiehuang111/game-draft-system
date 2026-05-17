@@ -9,7 +9,7 @@
 ## 子任務
 
 ### 後端資料結構
-- [ ] `packages/server/src/trade/types.ts`：`TradeRequest { id, fromUserId, toUserId, offerChampionId, wantChampionId, createdAt, expiresAt }`
+- [ ] `apps/server/src/trade/types.ts`：`TradeRequest { id, fromUserId, toUserId, offerChampionId, wantChampionId, createdAt, expiresAt }`
 - [ ] Room 內持有 `pendingTrade: TradeRequest | null`（單一房間最多一筆 pending；同時鎖住 from/to 雙方）
 - [ ] 提供 `hasPendingTrade(userId)` 給 Draft Engine 查詢
 
