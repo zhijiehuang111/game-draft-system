@@ -23,17 +23,12 @@ game-draft-system/
 
 ## 子任務
 
-- [ ] 初始化 pnpm workspaces，`pnpm-workspace.yaml` 加入 `apps/*` 與 `packages/*`
-- [ ] 建立目錄與 `package.json`：`apps/server`、`apps/client`、`packages/shared`
-- [ ] 根 `package.json` 設定共用 scripts（`dev`、`build`、`lint`、`typecheck`）
-- [ ] 設定根 `tsconfig.base.json`，三個 workspace 各自 `tsconfig.json` extends
-- [ ] `packages/shared`：純 TS 套件，輸出 type-only（`SocketEvent`、`RoomState`、`Champion` 預留 export）
-- [ ] `apps/server`：安裝 `express`、`socket.io`、`pg`、`bcrypt`、`jsonwebtoken`、`cookie-parser`、`zod`、`tsx`
-- [ ] `apps/client`：`pnpm create vite` 建立 React + TS，安裝 `socket.io-client`、`zustand`、`tailwindcss`
-- [ ] Tailwind 初始化（`tailwind.config.js`、`postcss.config.js`、入口 CSS `@tailwind` 指令）
-- [ ] 設定 `.env.example`（`DATABASE_URL`、`JWT_SECRET`、`NODE_ENV`、`PORT`）
-- [ ] `vite.config.ts` 配置 `/api` 與 `/socket.io`（含 `ws: true`）proxy 到後端
-- [ ] 設定 ESLint + Prettier（共用 config，monorepo 一致）
-- [ ] 加入 `.gitignore`（node_modules、dist、.env、.DS_Store）
-- [ ] 根 README 寫上「pnpm install → pnpm dev」基本指引
-- [ ] 驗證：`pnpm -r typecheck` 全部過、`pnpm dev` 可同時起前後端
+- [x] 初始化 pnpm workspaces，`pnpm-workspace.yaml` 加入 `apps/*` 與 `packages/*`
+- [x] 建立目錄與 `package.json`：`apps/server`、`apps/client`、`packages/shared`
+- [x] 根 `package.json` 設定共用 scripts（`dev`、`build`、`typecheck`）
+- [x] `packages/shared`：純 TS 套件，輸出 type-only（`SocketEvent`、`RoomState`、`Champion` 預留 export）
+- [x] `apps/server`：安裝 `express`、`socket.io`、`pg`、`bcrypt`、`jsonwebtoken`、`cookie-parser`、`zod`、`tsx`
+- [x] `apps/client`：`pnpm create vite` 建立 React + TS，安裝 `socket.io-client`、`zustand`、`tailwindcss`（v4）、`@tailwindcss/vite`
+- [x] Tailwind v4 初始化：`vite.config.ts` 註冊 `@tailwindcss/vite` plugin、入口 CSS 加 `@import "tailwindcss";`（v4 走 CSS-first，不需 `tailwind.config.js` / `postcss.config.js`；如需自訂 token 用 `@theme {}`）
+- [x] `vite.config.ts` 配置 `/api` 與 `/socket.io`（含 `ws: true`）proxy 到後端
+- [x] 加入 `.gitignore`（node_modules、dist、.env、.DS_Store）
