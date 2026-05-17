@@ -26,4 +26,8 @@ export interface ClientToServerEvents {
   'trade:respond': (payload: { tradeId: string; accept: boolean }) => void;
 }
 
+export interface SocketData {
+  userId: string;
+}
+
 export type SocketEvent = keyof ServerToClientEvents | keyof ClientToServerEvents;
