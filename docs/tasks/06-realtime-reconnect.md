@@ -9,18 +9,18 @@
 ## 子任務
 
 ### Socket.IO 基礎
-- [ ] `apps/server/src/realtime/io.ts`：建立 `Server`、整合 express http server
-- [ ] 套用 auth middleware（模組 2 已提供）
-- [ ] 預設 namespace `/` 用於 lobby；本專案 MVP 可只用預設 namespace，房間以 socket.io room 隔離（避免雙 namespace 維護成本）
+- [x] `apps/server/src/realtime/io.ts`：建立 `Server`、整合 express http server
+- [x] 套用 auth middleware（模組 2 已提供）
+- [x] 預設 namespace `/` 用於 lobby；本專案 MVP 可只用預設 namespace，房間以 socket.io room 隔離（避免雙 namespace 維護成本）
 
 ### Registry
-- [ ] `apps/server/src/realtime/RealtimeRegistry.ts`：
-  - [ ] `socketByUser: Map<userId, socketId>`
-  - [ ] `roomByUser: Map<userId, roomId>`
-  - [ ] `bind(userId, socketId)`：若舊 socketId 存在則 disconnect 舊 socket
-  - [ ] `setRoom(userId, roomId)` / `clearRoom(userId)`
-  - [ ] `unbind(socketId)`：清除映射
-- [ ] connection handler：bind userId↔socket、加入個人 room（`socket.join(\`user:\${userId}\`)`）
+- [x] `apps/server/src/realtime/RealtimeRegistry.ts`：
+  - [x] `socketByUser: Map<userId, socketId>`
+  - [x] `roomByUser: Map<userId, roomId>`
+  - [x] `bind(userId, socketId)`：若舊 socketId 存在則 disconnect 舊 socket
+  - [x] `setRoom(userId, roomId)` / `clearRoom(userId)`
+  - [x] `unbind(socketId)`：清除映射
+- [x] connection handler：bind userId↔socket、加入個人 room（`socket.join(\`user:\${userId}\`)`）
 
 ### `room:join` 處理
 - [ ] 事件 `room:join { roomId }`：
@@ -43,8 +43,8 @@
 - [ ] 若處於 lobby（無 room）→ 從 Matchmaker 佇列移除
 
 ### 錯誤事件
-- [ ] 統一 `socket.emit('error', { code, message })`，不踢人
-- [ ] 在共用模組封裝 `replyError(socket, code, message)`
+- [x] 統一 `socket.emit('error', { code, message })`，不踢人
+- [x] 在共用模組封裝 `replyError(socket, code, message)`
 
 ### 前端
 - [ ] `socketSlice.connect()`：`io()` 同源連線、cookie 自動帶
