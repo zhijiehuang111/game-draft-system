@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from '@app/shared';
 import { authRouter } from './auth/routes.js';
 import { socketAuth } from './auth/socket-middleware.js';
+import { championsRouter } from './champions/routes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,6 +19,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/champions', championsRouter);
 
 io.use(socketAuth);
 

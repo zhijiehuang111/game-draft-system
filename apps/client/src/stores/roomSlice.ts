@@ -1,0 +1,40 @@
+import type { DraftResult, Phase, RoomState, TradeRequest } from '@app/shared';
+import type { StateCreator } from 'zustand';
+import type { AppStore } from './index.js';
+
+export interface RoomSlice {
+  currentRoom: RoomState | null;
+  pendingTradeIncoming: TradeRequest | null;
+  pendingTradeOutgoing: { tradeId: string } | null;
+  draftResult: DraftResult[] | null;
+  setRoomState(state: RoomState | null): void;
+  applyPhaseChange(payload: { phase: Phase; phaseEndsAt: number; serverNow: number }): void;
+  setPendingTradeIncoming(trade: TradeRequest | null): void;
+  setPendingTradeOutgoing(trade: { tradeId: string } | null): void;
+  setDraftResult(result: DraftResult[] | null): void;
+  clearRoom(): void;
+}
+
+export const createRoomSlice: StateCreator<AppStore, [], [], RoomSlice> = (set) => ({
+  currentRoom: null,
+  pendingTradeIncoming: null,
+  pendingTradeOutgoing: null,
+  draftResult: null,
+  setRoomState: (state) => set({ currentRoom: state }),
+  applyPhaseChange: ({ phase, phaseEndsAt }) =>
+    set((prev) =>
+      prev.currentRoom
+        ? { currentRoom: { ...prev.currentRoom, phase, phaseEndsAt } }
+        : prev,
+    ),
+  setPendingTradeIncoming: (trade) => set({ pendingTradeIncoming: trade }),
+  setPendingTradeOutgoing: (trade) => set({ pendingTradeOutgoing: trade }),
+  setDraftResult: (result) => set({ draftResult: result }),
+  clearRoom: () =>
+    set({
+      currentRoom: null,
+      pendingTradeIncoming: null,
+      pendingTradeOutgoing: null,
+      draftResult: null,
+    }),
+});

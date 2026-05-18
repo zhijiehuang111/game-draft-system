@@ -1,61 +1,77 @@
 import { useEffect } from 'react';
-import { AuthApiError, getMe, logout } from './api/auth.js';
+import { getMe } from './api/auth.js';
+import { fetchChampions } from './api/champions.js';
+import { ApiRequestError } from './api/http.js';
+import { useToast } from './components/Toast.js';
 import { AuthScreen } from './screens/AuthScreen.js';
-import { useAuthStore } from './stores/auth.js';
+import { LobbyScreen } from './screens/LobbyScreen.js';
+import { ResultScreen } from './screens/ResultScreen.js';
+import { RoomScreen } from './screens/RoomScreen.js';
+import { connectSocket } from './socket/setup.js';
+import { useAppStore } from './stores/index.js';
 
 function App() {
-  const status = useAuthStore((s) => s.status);
-  const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
+  const status = useAppStore((s) => s.authStatus);
+  const user = useAppStore((s) => s.user);
+  const currentRoom = useAppStore((s) => s.currentRoom);
+  const draftResult = useAppStore((s) => s.draftResult);
+  const setUser = useAppStore((s) => s.setUser);
+  const setChampions = useAppStore((s) => s.setChampions);
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
+
     getMe()
       .then(({ user }) => {
-        if (!cancelled) setUser(user);
+        if (cancelled) return;
+        setUser(user);
       })
       .catch((err) => {
         if (cancelled) return;
         setUser(null);
-        if (!(err instanceof AuthApiError && err.status === 401)) {
+        if (!(err instanceof ApiRequestError && err.status === 401)) {
           console.error('getMe failed', err);
         }
       });
+
     return () => {
       cancelled = true;
     };
   }, [setUser]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    connectSocket();
+    let cancelled = false;
+    fetchChampions()
+      .then((list) => {
+        if (cancelled) return;
+        setChampions(list);
+      })
+      .catch((err) => {
+        console.error('fetchChampions failed', err);
+        toast.show('Failed to load champions', 'error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, setChampions, toast]);
+
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500">
+      <div className="min-h-screen flex items-center justify-center text-slate-400">
         Loading…
       </div>
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
-  return (
-    <div className="min-h-screen p-8">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold">Welcome, {user.username}</h1>
-        <button
-          type="button"
-          onClick={async () => {
-            await logout().catch(() => undefined);
-            setUser(null);
-          }}
-          className="px-3 py-1.5 text-sm bg-slate-200 hover:bg-slate-300 rounded"
-        >
-          Logout
-        </button>
-      </header>
-      <p className="text-slate-600">Lobby / Room screens coming next.</p>
-    </div>
-  );
+  if (!user) return <AuthScreen />;
+  if (draftResult) return <ResultScreen />;
+  if (currentRoom && currentRoom.phase !== 'aborted') return <RoomScreen />;
+  return <LobbyScreen />;
 }
 
 export default App;
