@@ -2,7 +2,7 @@ import type { Phase, RoomState, TradeRequest } from './room.js';
 import type { DraftResult } from './db.js';
 
 export interface ServerToClientEvents {
-  'queue:update': (payload: { size: number; position: number }) => void;
+  'queue:update': (payload: { size: number; position?: number }) => void;
   'room:start': (payload: { roomId: string }) => void;
   'room:state': (payload: RoomState) => void;
   'room:phase': (payload: { phase: Phase; phaseEndsAt: number; serverNow: number }) => void;

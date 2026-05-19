@@ -22,11 +22,25 @@ export function connectSocket(): AppSocket {
   });
 
   socket.on('queue:update', (payload) => {
-    useAppStore.setState({ queueSize: payload.size });
+    const next: Partial<AppStore> = { queueSize: payload.size };
+    if (payload.position !== undefined) next.inQueue = true;
+    useAppStore.setState(next);
   });
 
-  socket.on('room:start', () => {
-    // Module 3/4 will populate currentRoom via room:state next
+  socket.on('room:start', (payload) => {
+    useAppStore.setState({
+      inQueue: false,
+      currentRoom: {
+        roomId: payload.roomId,
+        phase: 'initial-pick',
+        phaseEndsAt: 0,
+        serverNow: Date.now(),
+        players: [],
+        bench: [],
+        pendingTrade: null,
+        disconnected: {},
+      },
+    });
   });
 
   socket.on('room:state', (payload) => {
