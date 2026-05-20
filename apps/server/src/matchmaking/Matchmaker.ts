@@ -58,19 +58,16 @@ export class Matchmaker {
   private async tryMatch(): Promise<void> {
     while (this.queue.length >= PARTY_SIZE) {
       const party = this.queue.splice(0, PARTY_SIZE);
-      for (const entry of party) this.inQueue.delete(entry.userId);
 
       let roomId: string;
       try {
         roomId = await this.createRoomInDb(party.map((p) => p.userId));
       } catch (err) {
         console.error('[matchmaking] failed to create room', err);
-        for (const entry of party) {
-          this.inQueue.set(entry.userId, true);
-          this.queue.unshift(entry);
-        }
+        for (const entry of party) this.queue.unshift(entry);
         break;
       }
+      for (const entry of party) this.inQueue.delete(entry.userId);
 
       this.draftEngine.createRoom(
         roomId,
