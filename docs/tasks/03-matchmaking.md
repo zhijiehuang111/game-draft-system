@@ -17,7 +17,7 @@
   - [x] `leave(userId)`：移除 + 廣播
   - [x] `tryMatch()`：每次 join 後呼叫，達 5 人才觸發
 - [x] 觸發建房流程：
-  - [x] shift 5 人 → 開 transaction → `rooms.insert(status='drafting')` → `room_players.insert x5`（slot 0~4）
+  - [x] shift 5 人 → 產生 roomId（`crypto.randomUUID()`，不寫 DB）
   - [x] 呼叫 Draft Engine `createRoom(roomId, players)`（先預留介面，實作隨模組 4 跟進）
   - [x] 對 5 人 emit `room:start { roomId }`
   - [x] 對 lobby 全員 emit `queue:update { size }`

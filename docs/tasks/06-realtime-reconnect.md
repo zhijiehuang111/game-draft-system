@@ -35,7 +35,7 @@
   - [ ] 若在 room → 標 `room.disconnected[userId] = Date.now()`、廣播 `player:disconnected`、設 `setTimeout(15_000, checkStillGone)`
 - [ ] `checkStillGone(userId)`：
   - [ ] 若 user 已重連（disconnected 不存在）→ no-op
-  - [ ] 否則：abortRoom（DB + 廣播 `room:aborted { reason: 'player-left' }`）、釋放記憶體
+  - [ ] 否則：廣播 `room:aborted { reason: 'player-left' }`、釋放記憶體（不落 DB）
 - [ ] 重連入口為 `room:join`（client 自動 emit）
 
 ### 主動離房 / 登出
@@ -56,5 +56,5 @@
 ### 驗證
 - [ ] 5 人對局中關掉某一人分頁 → 其餘 4 人看到 disconnected 標示
 - [ ] 該玩家 10 秒內重開分頁登入 → 自動回房、其他人看到 reconnected
-- [ ] 該玩家 15 秒未回 → 全房收到 `room:aborted`、DB `rooms.status='aborted'`
+- [ ] 該玩家 15 秒未回 → 全房收到 `room:aborted`、房間記憶體釋放
 - [ ] 同帳號開第二分頁登入 → 第一分頁被踢

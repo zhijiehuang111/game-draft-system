@@ -49,7 +49,7 @@
 ### 階段 3：Lock-in
 - [ ] 凍結所有 `pick:*` / `trade:*`，一律回 `error { code: 'phase-locked' }`
 - [ ] 3 秒倒數結束：
-  - [ ] transaction：`rooms.update(status='completed', finished_at=NOW())` + `draft_results.insertMany(5)`
+  - [ ] `draft_results.insertMany(5)`
   - [ ] 廣播 `room:result`，payload 為 `DraftResult[]`
   - [ ] `phase = 'done'`，記憶體狀態保留一段時間後清除（例如 60s 後 RoomRegistry.remove）
 

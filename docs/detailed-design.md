@@ -51,15 +51,15 @@ flowchart LR
 
 | 類別            | 範例                                                  | 落腳處             |
 | --------------- | ----------------------------------------------------- | ------------------ |
-| 跨 session 持久 | users、rooms metadata、draft_results                  | **PostgreSQL**     |
-| Runtime 活動    | 房間 phase / allocations / picks / trades / 倒數計時 | **記憶體（單機）** |
+| 跨 session 持久 | users、draft_results                                  | **PostgreSQL**     |
+| Runtime 活動    | 房間 metadata / phase / allocations / picks / trades / 倒數計時 | **記憶體（單機）** |
 | 靜態查表        | champions                                             | **shared 常數**    |
 
-理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益，且引入額外失敗模式。DB 寫入只發生在 3 個時點：
+理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益，且引入額外失敗模式。房間整個生命週期完全在記憶體跑（roomId 由 `crypto.randomUUID()` 產生）；DB 寫入只發生在 **1 個時點**：
 
-1. **建房**：`INSERT rooms (status='drafting')` + `INSERT room_players x5`
-2. **結算**：`UPDATE rooms SET status='completed', finished_at=...` + `INSERT draft_results x5`
-3. **作廢**：`UPDATE rooms SET status='aborted', abort_reason=...`
+1. **結算**：`INSERT draft_results x5`（lock-in 結束時）
+
+作廢的房間不落 DB——`room:aborted` 事件廣播完即釋放記憶體，運營端如需統計用 log / metrics 處理。
 
 ### 1.3 DDL
 
@@ -72,31 +72,10 @@ CREATE TABLE users (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 房間（matchmaking 為主，預留 custom 欄位）
-CREATE TABLE rooms (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type         VARCHAR(16) NOT NULL DEFAULT 'matchmaking', -- 預留 'custom'
-  invite_code  VARCHAR(16),                                 -- 預留
-  status       VARCHAR(16) NOT NULL,                        -- 'drafting' | 'completed' | 'aborted'
-  abort_reason VARCHAR(32),                                 -- 'player-left' 等
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  finished_at  TIMESTAMPTZ
-);
-CREATE INDEX idx_rooms_status ON rooms(status);
-
--- 房間玩家（每房 5 人）
-CREATE TABLE room_players (
-  room_id   UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  user_id   UUID NOT NULL REFERENCES users(id),
-  slot      SMALLINT NOT NULL CHECK (slot BETWEEN 0 AND 4),
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (room_id, user_id),
-  UNIQUE (room_id, slot)
-);
-
 -- 最終結果（phase=done 時寫入）
+-- room_id 是 in-memory 房間的 UUID，作為同一局 5 筆 row 的分組鍵（無 FK）
 CREATE TABLE draft_results (
-  room_id           UUID NOT NULL REFERENCES rooms(id),
+  room_id           UUID NOT NULL,
   user_id           UUID NOT NULL REFERENCES users(id),
   final_champion_id VARCHAR(32) NOT NULL,
   completed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -107,9 +86,11 @@ CREATE INDEX idx_results_user ON draft_results(user_id);
 
 說明：
 
-- `rooms.type` / `invite_code`：proposal §10 的擴充預留
-- `room_players` 不存 `current_champion`：runtime 變動頻繁；最終值入 `draft_results`
+- 不存 in-room 中繼狀態（allocated / currentChampion / phase / bench）：runtime 變動頻繁全在記憶體，最終值入 `draft_results`
+- 不建 `rooms` 表：房間生命週期短、metadata 全在記憶體，沒有完局後查詢場景；唯一持久化的「曾發生過 draft」訊號就是 5 筆 `draft_results`
 - 不建 `trades` 表：交換生命週期僅在房內，房間結束即丟棄
+- 房間玩家 N:M 中介表省略：`draft_results` 已涵蓋完局後 user ↔ room 對應
+- 未來若需 custom 房 / 邀請碼 / replay / 作廢房紀錄，再加對應表
 
 ---
 
@@ -207,9 +188,7 @@ sequenceDiagram
   MM-->>Lobby: queue:update { size }
 
   alt queue.length >= 5
-    MM->>MM: shift 5 人
-    MM->>DB: INSERT rooms (status='drafting')
-    MM->>DB: INSERT room_players x5
+    MM->>MM: shift 5 人 + 產生 roomId（UUID）
     MM->>DE: createRoom(roomId, players)
     MM-->>Room: room:start { roomId }
     MM-->>Lobby: queue:update { size }
@@ -322,10 +301,9 @@ interface PlayerState {
 - 凍結：拒絕所有 `pick:*`、`trade:*`（回 `error { code: 'phase-locked' }`）
 - 倒數 3 秒視覺動畫
 - 動畫結束：
-  1. `UPDATE rooms SET status='completed', finished_at=NOW()`
-  2. `INSERT draft_results` x5（依 `currentChampion`）
-  3. 廣播 `room:result`
-  4. `phase = 'done'`，房間記憶體狀態保留供 client 顯示後續查詢，X 秒後釋放
+  1. `INSERT draft_results` x5（依 `currentChampion`）
+  2. 廣播 `room:result`
+  3. `phase = 'done'`，房間記憶體狀態保留供 client 顯示後續查詢，X 秒後釋放
 
 ### 4.9 介面契約（Socket）
 
@@ -472,7 +450,6 @@ sequenceDiagram
     S-->>Others: player:reconnected { userId }
   else 逾時 / 主動關閉
     S->>S: phase = aborted
-    S->>DB: UPDATE rooms SET status='aborted', abort_reason='player-left'
     S-->>All: room:aborted { reason: 'player-left' }
     S->>S: 釋放房間記憶體狀態
   end

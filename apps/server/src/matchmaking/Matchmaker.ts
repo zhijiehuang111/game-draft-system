@@ -1,9 +1,4 @@
-import type { Pool } from 'pg';
-import { pool as defaultPool } from '../db/pool.js';
-import {
-  createRoom as createRoomRow,
-  insertPlayers,
-} from '../db/repositories/rooms.repo.js';
+import { randomUUID } from 'node:crypto';
 import type { DraftEngine } from '../draft/engine.js';
 import type { AppIoServer } from '../realtime/io.js';
 
@@ -18,7 +13,6 @@ interface QueueEntry {
 export interface MatchmakerDeps {
   io: AppIoServer;
   draftEngine: DraftEngine;
-  pool?: Pool;
 }
 
 export class Matchmaker {
@@ -26,12 +20,10 @@ export class Matchmaker {
   private readonly inQueue = new Map<string, true>();
   private readonly io: AppIoServer;
   private readonly draftEngine: DraftEngine;
-  private readonly pool: Pool;
 
   constructor(deps: MatchmakerDeps) {
     this.io = deps.io;
     this.draftEngine = deps.draftEngine;
-    this.pool = deps.pool ?? defaultPool;
   }
 
   async join(userId: string, socketId: string): Promise<void> {
@@ -58,17 +50,9 @@ export class Matchmaker {
   private async tryMatch(): Promise<void> {
     while (this.queue.length >= PARTY_SIZE) {
       const party = this.queue.splice(0, PARTY_SIZE);
-
-      let roomId: string;
-      try {
-        roomId = await this.createRoomInDb(party.map((p) => p.userId));
-      } catch (err) {
-        console.error('[matchmaking] failed to create room', err);
-        for (const entry of party) this.queue.unshift(entry);
-        break;
-      }
       for (const entry of party) this.inQueue.delete(entry.userId);
 
+      const roomId = randomUUID();
       this.draftEngine.createRoom(
         roomId,
         party.map((p, i) => ({ userId: p.userId, slot: i })),
@@ -79,22 +63,6 @@ export class Matchmaker {
       }
       this.broadcastSize();
       this.emitPositions();
-    }
-  }
-
-  private async createRoomInDb(userIds: string[]): Promise<string> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      const room = await createRoomRow(client);
-      await insertPlayers(client, room.id, userIds);
-      await client.query('COMMIT');
-      return room.id;
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => undefined);
-      throw err;
-    } finally {
-      client.release();
     }
   }
 
