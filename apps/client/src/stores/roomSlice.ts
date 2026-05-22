@@ -4,6 +4,7 @@ import type { AppStore } from './index.js';
 
 export interface RoomSlice {
   currentRoom: RoomState | null;
+  serverOffsetMs: number;
   pendingTradeIncoming: TradeRequest | null;
   pendingTradeOutgoing: { tradeId: string } | null;
   draftResult: DraftResult[] | null;
@@ -17,22 +18,29 @@ export interface RoomSlice {
 
 export const createRoomSlice: StateCreator<AppStore, [], [], RoomSlice> = (set) => ({
   currentRoom: null,
+  serverOffsetMs: 0,
   pendingTradeIncoming: null,
   pendingTradeOutgoing: null,
   draftResult: null,
-  setRoomState: (state) => set({ currentRoom: state }),
-  applyPhaseChange: ({ phase, phaseEndsAt }) =>
-    set((prev) =>
-      prev.currentRoom
-        ? { currentRoom: { ...prev.currentRoom, phase, phaseEndsAt } }
-        : prev,
-    ),
+  setRoomState: (state) =>
+    set(() => ({
+      currentRoom: state,
+      serverOffsetMs: state ? state.serverNow - Date.now() : 0,
+    })),
+  applyPhaseChange: ({ phase, phaseEndsAt, serverNow }) =>
+    set((prev) => ({
+      serverOffsetMs: serverNow - Date.now(),
+      currentRoom: prev.currentRoom
+        ? { ...prev.currentRoom, phase, phaseEndsAt }
+        : prev.currentRoom,
+    })),
   setPendingTradeIncoming: (trade) => set({ pendingTradeIncoming: trade }),
   setPendingTradeOutgoing: (trade) => set({ pendingTradeOutgoing: trade }),
   setDraftResult: (result) => set({ draftResult: result }),
   clearRoom: () =>
     set({
       currentRoom: null,
+      serverOffsetMs: 0,
       pendingTradeIncoming: null,
       pendingTradeOutgoing: null,
       draftResult: null,

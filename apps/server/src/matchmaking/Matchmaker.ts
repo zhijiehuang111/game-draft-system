@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto';
-import type { DraftEngine } from '../draft/engine.js';
-import type { AppIoServer } from '../realtime/io.js';
+import { randomUUID } from "node:crypto";
+import type { DraftEngine } from "../draft/engine.js";
+import type { AppIoServer } from "../realtime/io.js";
 
 const PARTY_SIZE = 5;
 
@@ -50,16 +50,23 @@ export class Matchmaker {
   private async tryMatch(): Promise<void> {
     while (this.queue.length >= PARTY_SIZE) {
       const party = this.queue.splice(0, PARTY_SIZE);
-      for (const entry of party) this.inQueue.delete(entry.userId);
 
       const roomId = randomUUID();
-      this.draftEngine.createRoom(
-        roomId,
-        party.map((p, i) => ({ userId: p.userId, slot: i })),
-      );
+      try {
+        await this.draftEngine.createRoom(
+          roomId,
+          party.map((p, i) => ({ userId: p.userId, slot: i })),
+        );
+      } catch (err) {
+        console.error("[matchmaking] failed to start draft", err);
+        this.queue.unshift(...party);
+        break;
+      }
+
+      for (const entry of party) this.inQueue.delete(entry.userId);
 
       for (const entry of party) {
-        this.io.to(`user:${entry.userId}`).emit('room:start', { roomId });
+        this.io.to(`user:${entry.userId}`).emit("room:start", { roomId });
       }
       this.broadcastSize();
       this.emitPositions();
@@ -67,14 +74,14 @@ export class Matchmaker {
   }
 
   private broadcastSize(): void {
-    this.io.emit('queue:update', { size: this.queue.length });
+    this.io.emit("queue:update", { size: this.queue.length });
   }
 
   private emitPositions(): void {
     this.queue.forEach((entry, index) => {
       this.io
         .to(`user:${entry.userId}`)
-        .emit('queue:update', { size: this.queue.length, position: index + 1 });
+        .emit("queue:update", { size: this.queue.length, position: index + 1 });
     });
   }
 }

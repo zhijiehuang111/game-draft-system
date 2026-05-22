@@ -13,6 +13,9 @@ export function connectSocket(): AppSocket {
 
   socket.on('connect', () => {
     useAppStore.setState({ socketConnected: true });
+    // Re-join room on reconnect if we still have one in state
+    const current = useAppStore.getState().currentRoom;
+    if (current) socket.emit('room:join', { roomId: current.roomId });
   });
   socket.on('disconnect', () => {
     useAppStore.setState({ socketConnected: false });
@@ -41,10 +44,11 @@ export function connectSocket(): AppSocket {
         disconnected: {},
       },
     });
+    socket.emit('room:join', { roomId: payload.roomId });
   });
 
   socket.on('room:state', (payload) => {
-    useAppStore.setState({ currentRoom: payload });
+    useAppStore.getState().setRoomState(payload);
   });
 
   socket.on('room:phase', (payload) => {

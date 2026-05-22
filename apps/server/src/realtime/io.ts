@@ -9,6 +9,7 @@ import { socketAuth } from '../auth/socket-middleware.js';
 import { createDraftEngine } from '../draft/engine.js';
 import { Matchmaker } from '../matchmaking/Matchmaker.js';
 import { RealtimeRegistry } from './RealtimeRegistry.js';
+import { replyError } from './reply-error.js';
 
 export type AppIoServer = Server<
   ClientToServerEvents,
@@ -26,7 +27,7 @@ export interface Realtime {
 export function createRealtime(httpServer: HttpServer): Realtime {
   const io: AppIoServer = new Server(httpServer);
   const registry = new RealtimeRegistry(io);
-  const draftEngine = createDraftEngine();
+  const draftEngine = createDraftEngine({ io });
   const matchmaker = new Matchmaker({ io, draftEngine });
 
   io.use(socketAuth);
@@ -45,6 +46,27 @@ export function createRealtime(httpServer: HttpServer): Realtime {
 
     socket.on('queue:leave', () => {
       matchmaker.leave(userId);
+    });
+
+    socket.on('room:join', ({ roomId }) => {
+      const result = draftEngine.handleRoomJoin(userId, roomId);
+      if (!result.ok) {
+        replyError(socket, result.code, 'cannot join room');
+        return;
+      }
+      socket.join(`room:${roomId}`);
+      registry.setRoom(userId, roomId);
+      socket.emit('room:state', result.snapshot);
+    });
+
+    socket.on('pick:initial', ({ championId }) => {
+      const result = draftEngine.handlePickInitial(userId, championId);
+      if (!result.ok) replyError(socket, result.code, result.message);
+    });
+
+    socket.on('pick:bench', ({ championId }) => {
+      const result = draftEngine.handlePickBench(userId, championId);
+      if (!result.ok) replyError(socket, result.code, result.message);
     });
 
     socket.on('disconnect', () => {
