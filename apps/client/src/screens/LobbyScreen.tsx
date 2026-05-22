@@ -49,7 +49,7 @@ export function LobbyScreen() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-slate-400">Queue</div>
-            <div className="text-2xl font-semibold">{queueSize} / 5</div>
+            <div className="text-2xl font-semibold">{queueSize} / 4</div>
           </div>
           {inQueue ? (
             <Button variant="danger" onClick={handleLeave}>

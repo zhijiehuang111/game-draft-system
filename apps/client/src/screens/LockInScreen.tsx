@@ -13,7 +13,7 @@ export function LockInScreen() {
       <div className="text-5xl font-mono">
         <Countdown phaseEndsAt={room.phaseEndsAt} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 w-full max-w-5xl">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full max-w-5xl">
         {room.players.map((p) => (
           <Card key={p.userId} className="flex flex-col items-center">
             <div className="text-sm font-semibold mb-2">{p.username}</div>

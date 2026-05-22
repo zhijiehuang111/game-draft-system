@@ -17,7 +17,7 @@ export function ResultScreen() {
         </Button>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-5 gap-3">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {results.map((r) => (
           <Card key={r.userId} className="flex flex-col items-center">
             <ChampionAvatar championId={r.finalChampionId} size={80} />

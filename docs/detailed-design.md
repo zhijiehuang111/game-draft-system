@@ -13,7 +13,7 @@
 | --- | -------------------- | --------------------------------------------------------- |
 | 1   | Data Layer           | DB schema、migration；劃定 DB 持久化 vs 記憶體 runtime 邊界 |
 | 2   | Auth                 | 註冊 / 登入 / 身份查驗、JWT 簽發、Socket.IO 握手           |
-| 3   | Matchmaking          | 全域佇列、湊滿 5 人建房、Lobby UI                          |
+| 3   | Matchmaking          | 全域佇列、湊滿 4 人建房、Lobby UI                          |
 | 4   | Draft Engine         | 房間狀態機、階段流轉、倒數、Initial Pick、Lock-in、結算    |
 | 5   | Trade                | 板凳挑選、1v1 交換申請、原子性與限制                       |
 | 6   | Realtime / Reconnect | Socket.IO 連線、斷線 grace period、房間作廢                |
@@ -160,7 +160,7 @@ io.use((socket, next) => {
 ### 3.1 職責
 
 - 維護單一全域 FIFO 佇列
-- 湊滿 5 人 → 通知 Draft Engine 建房 → 通知 5 名 client
+- 湊滿 4 人 → 通知 Draft Engine 建房 → 通知 4 名 client
 - 處理重複加入、佇列中斷線
 
 ### 3.2 記憶體資料結構
@@ -181,14 +181,14 @@ sequenceDiagram
   participant DE as Draft Engine
   participant DB as PostgreSQL
   participant Lobby as All Lobby Clients
-  participant Room as Matched 5 Clients
+  participant Room as Matched 4 Clients
 
   C->>MM: queue:join (via socket)
   MM->>MM: 若已在佇列則 no-op；否則 enqueue
   MM-->>Lobby: queue:update { size }
 
-  alt queue.length >= 5
-    MM->>MM: shift 5 人 + 產生 roomId（UUID）
+  alt queue.length >= 4
+    MM->>MM: shift 4 人 + 產生 roomId（UUID）
     MM->>DE: createRoom(roomId, players)
     MM-->>Room: room:start { roomId }
     MM-->>Lobby: queue:update { size }
@@ -244,7 +244,7 @@ interface RoomState {
   phase: Phase;
   phaseEndsAt: number;          // epoch ms，server-authoritative
   serverNow: number;            // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
-  players: PlayerState[];        // 5 人
+  players: PlayerState[];        // 4 人
   bench: string[];               // 階段 2 可挑英雄
   pendingTrade: TradeRequest | null;
   disconnected: Map<string, number>; // userId -> disconnectedAt
@@ -253,7 +253,7 @@ interface RoomState {
 interface PlayerState {
   userId: string;
   username: string;
-  slot: number;                    // 0~4
+  slot: number;                    // 0~3
   allocated: string[];             // 階段 1 被分配（2~3 隻）
   currentChampion: string | null;  // 目前持有；階段 1 結束才非 null
 }
@@ -262,8 +262,8 @@ interface PlayerState {
 ### 4.4 隨機分配規則
 
 1. 每位玩家分配張數 `n_i ∈ {2, 3}` 隨機決定
-2. 從 Champion 全清單洗牌後切片：總抽取數 `sum(n_i) ∈ [10, 15]`
-3. **房內英雄唯一**：5 名玩家的 `allocated` 不重複
+2. 從 Champion 全清單洗牌後切片：總抽取數 `sum(n_i) ∈ [8, 12]`
+3. **房內英雄唯一**：4 名玩家的 `allocated` 不重複
 4. 結果寫入各 `PlayerState.allocated`
 
 ### 4.5 倒數計時（Server-authoritative）

@@ -52,9 +52,9 @@ game-draft-system/
 ### 3.1 MVP 必做
 
 - 註冊 / 登入
-- 加入單一全域佇列、湊滿 5 人自動建房
+- 加入單一全域佇列、湊滿 4 人自動建房
 - 進房後系統隨機分配 2~3 隻英雄給每位玩家
-- 第一階段：5 人同時各從自己被分配的 2~3 隻中選 1（短倒數）
+- 第一階段：4 人同時各從自己被分配的 2~3 隻中選 1（短倒數）
 - 未被選中的英雄進入「板凳區」
 - 第二階段：所有玩家可從板凳區挑英雄，或向其他玩家發起 1 對 1 交換申請（需對方同意）
 - 倒數結束 → 鎖定結果 → 寫入 `draft_results` → 顯示最終結果頁
@@ -63,7 +63,7 @@ game-draft-system/
 ### 3.2 非範疇（明確不做）
 
 - 實力分配 / MMR
-- 5v5 雙隊（單一房間 = 一隊 5 人）
+- 5v5 / 多隊（單一房間 = 一隊 4 人）
 - Ban 階段
 - 房內聊天室
 - 歷史記錄頁
@@ -81,12 +81,12 @@ Landing
   └─ 註冊 / 登入
        └─ Lobby（顯示「加入佇列」按鈕）
             └─ 點擊加入佇列
-                 └─ Matchmaker 湊滿 5 人 → 建立 Room
+                 └─ Matchmaker 湊滿 4 人 → 建立 Room
                       └─ Room 頁面
                            ├─ 階段 1: Initial Pick（每人從 2~3 隻選 1）
                            ├─ 階段 2: Bench & Trade（自由換 + 1v1 交換申請）
                            ├─ 階段 3: Lock-in（鎖定 / 倒數結束）
-                           └─ Result（顯示 5 人最終英雄）
+                           └─ Result（顯示 4 人最終英雄）
 ```
 
 ### 4.1 階段時長
@@ -120,7 +120,7 @@ Landing
 | C→S  | `queue:join`     | –                                                   | 加入佇列                   |
 | C→S  | `queue:leave`    | –                                                   | 離開佇列                   |
 | S→C  | `queue:update`   | `{ size, position }`                                | 佇列人數變動               |
-| S→C  | `room:start`     | `{ roomId }`                                        | 5 人到齊、建房通知         |
+| S→C  | `room:start`     | `{ roomId }`                                        | 4 人到齊、建房通知         |
 | C→S  | `room:join`      | `{ roomId }`                                        | 進房（rejoin 同此事件）    |
 | S→C  | `room:state`     | `RoomState`                                         | 全狀態同步（進房或重連時） |
 | S→C  | `room:phase`     | `{ phase, phaseEndsAt }`                            | 階段切換                   |
@@ -167,7 +167,7 @@ Landing
 | Auth   | 未登入                                            | 登入 / 註冊                       |
 | Lobby  | 已登入 + 不在房間                                 | 佇列人數、加入/離開佇列按鈕、登出 |
 | Room   | 房間 phase ∈ initial-pick / bench-trade / lock-in | 階段 UI、倒數、板凳、交換彈窗     |
-| Result | 房間 phase = done                                 | 5 人最終英雄                      |
+| Result | 房間 phase = done                                 | 4 人最終英雄                      |
 
 > 日後若要做自建房邀請連結（URL 真的承載資訊時）再導入 React Router。
 

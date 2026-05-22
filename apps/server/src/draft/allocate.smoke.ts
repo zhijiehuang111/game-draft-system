@@ -15,14 +15,14 @@ function assert(cond: unknown, msg: string): void {
 
 function run(): void {
   const pool = CHAMPIONS.map((c) => c.id);
-  const players = Array.from({ length: 5 }, (_, i) => ({
+  const players = Array.from({ length: 4 }, (_, i) => ({
     userId: `u${i}`,
     slot: i,
   }));
 
   for (let seed = 1; seed <= 20; seed += 1) {
     const result = allocateChampions(players, pool, seeded(seed));
-    assert(result.length === 5, `seed ${seed}: result length`);
+    assert(result.length === 4, `seed ${seed}: result length`);
     const all: string[] = [];
     for (const r of result) {
       assert(

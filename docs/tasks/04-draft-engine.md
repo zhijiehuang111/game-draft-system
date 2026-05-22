@@ -20,7 +20,7 @@
 ### 隨機分配
 - [ ] `allocateChampions(players, championPool)`：
   - [ ] 每人隨機 n ∈ {2,3}
-  - [ ] 從洗牌後 pool 切片，確保 5 人 allocated 不重複
+  - [ ] 從洗牌後 pool 切片，確保 4 人 allocated 不重複
   - [ ] 寫入 `PlayerState.allocated`
 - [ ] 寫單元測試（給定固定 seed 驗證不重複、張數正確）
 
@@ -31,7 +31,7 @@
 - [ ] `room:state` 廣播亦帶 `serverNow`
 
 ### 階段 1：Initial Pick
-- [ ] `createRoom(roomId, players)`：建 Room、執行分配、`transitionTo('initial-pick')`、對 5 人 emit `room:state`
+- [ ] `createRoom(roomId, players)`：建 Room、執行分配、`transitionTo('initial-pick')`、對 4 人 emit `room:state`
 - [ ] 事件 `pick:initial { championId }`：
   - [ ] 驗 phase、championId ∈ allocated、currentChampion === null
   - [ ] 通過 → 寫入 currentChampion、廣播 `room:state`
@@ -49,7 +49,7 @@
 ### 階段 3：Lock-in
 - [ ] 凍結所有 `pick:*` / `trade:*`，一律回 `error { code: 'phase-locked' }`
 - [ ] 3 秒倒數結束：
-  - [ ] `draft_results.insertMany(5)`
+  - [ ] `draft_results.insertMany(4)`
   - [ ] 廣播 `room:result`，payload 為 `DraftResult[]`
   - [ ] `phase = 'done'`，記憶體狀態保留一段時間後清除（例如 60s 後 RoomRegistry.remove）
 
@@ -64,10 +64,10 @@
 - [ ] `InitialPickScreen`：渲染自己 allocated 卡片、點擊 → emit `pick:initial`
 - [ ] `BenchTradeScreen`：渲染所有玩家卡 + 板凳區、點板凳卡 → emit `pick:bench`
 - [ ] `LockInScreen`：純動畫畫面
-- [ ] `ResultScreen`：訂閱 `room:result`、顯示 5 人最終英雄
+- [ ] `ResultScreen`：訂閱 `room:result`、顯示 4 人最終英雄
 
 ### 驗證
-- [ ] 5 人完整跑完一局（不交換）→ 寫入 draft_results
+- [ ] 4 人完整跑完一局（不交換）→ 寫入 draft_results
 - [ ] 階段 1 不選 → 自動補選
 - [ ] 階段 2 換到 / 從板凳挑 → 廣播即時反映
 - [ ] Lock-in 期間操作被拒

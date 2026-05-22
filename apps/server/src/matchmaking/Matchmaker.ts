@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DraftEngine } from "../draft/engine.js";
 import type { AppIoServer } from "../realtime/io.js";
 
-const PARTY_SIZE = 5;
+const PARTY_SIZE = 4;
 
 interface QueueEntry {
   userId: string;

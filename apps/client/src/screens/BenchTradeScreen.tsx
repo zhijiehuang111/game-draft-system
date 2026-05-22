@@ -30,7 +30,7 @@ export function BenchTradeScreen() {
 
       <section>
         <h2 className="text-sm font-semibold text-slate-300 mb-2">Players</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {room.players.map((p) => {
             const isMe = p.userId === user.id;
             return (

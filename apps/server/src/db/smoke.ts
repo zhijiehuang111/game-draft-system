@@ -10,10 +10,10 @@ async function main() {
 
     const suffix = Date.now();
     const users = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       users.push(await createUser(client, `smoke_${suffix}_${i}`, 'fake-hash'));
     }
-    console.log('✓ created 5 users');
+    console.log('✓ created 4 users');
 
     const roomId = randomUUID();
     const results = await insertResults(
@@ -21,8 +21,8 @@ async function main() {
       roomId,
       users.map((u, i) => ({ userId: u.id, finalChampionId: `champ_${i}` })),
     );
-    if (results.length !== 5) throw new Error(`expected 5 results, got ${results.length}`);
-    console.log('✓ inserted 5 draft_results');
+    if (results.length !== 4) throw new Error(`expected 4 results, got ${results.length}`);
+    console.log('✓ inserted 4 draft_results');
 
     await client.query('ROLLBACK');
     console.log('✓ rolled back — DB left clean');

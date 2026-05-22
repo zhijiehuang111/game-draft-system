@@ -4,7 +4,7 @@
 >
 > 依賴：模組 0、1、2、6（最低限度：socket 已可握手）
 >
-> 全域 FIFO 佇列、湊滿 5 人建房、Lobby UI。
+> 全域 FIFO 佇列、湊滿 4 人建房、Lobby UI。
 
 ## 子任務
 
@@ -15,11 +15,11 @@
   - [x] `inQueue: Map<string, true>`
   - [x] `join(userId, socketId)`：重複加入回 no-op；否則 enqueue + 廣播
   - [x] `leave(userId)`：移除 + 廣播
-  - [x] `tryMatch()`：每次 join 後呼叫，達 5 人才觸發
+  - [x] `tryMatch()`：每次 join 後呼叫，達 4 人才觸發
 - [x] 觸發建房流程：
-  - [x] shift 5 人 → 產生 roomId（`crypto.randomUUID()`，不寫 DB）
+  - [x] shift 4 人 → 產生 roomId（`crypto.randomUUID()`，不寫 DB）
   - [x] 呼叫 Draft Engine `createRoom(roomId, players)`（先預留介面，實作隨模組 4 跟進）
-  - [x] 對 5 人 emit `room:start { roomId }`
+  - [x] 對 4 人 emit `room:start { roomId }`
   - [x] 對 lobby 全員 emit `queue:update { size }`
 - [x] 註冊 socket 事件：`queue:join`、`queue:leave`
 - [x] 佇列中玩家 socket disconnect → 自動 leave + 廣播
@@ -40,6 +40,6 @@
 
 ### 驗證
 
-- [x] 開 5 個分頁分別登入 5 個帳號，依序加入佇列 → 全部進入 RoomScreen
+- [x] 開 4 個分頁分別登入 4 個帳號，依序加入佇列 → 全部進入 RoomScreen
 - [x] 同帳號第二處登入 → 第一處被踢、queue size 減 1
 - [x] 加入後直接關分頁 → queue size 減 1

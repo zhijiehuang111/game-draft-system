@@ -54,7 +54,7 @@
 - [ ] 收到 `player:disconnected` / `player:reconnected` → PlayerCard 標示灰階 / 恢復
 
 ### 驗證
-- [ ] 5 人對局中關掉某一人分頁 → 其餘 4 人看到 disconnected 標示
+- [ ] 4 人對局中關掉某一人分頁 → 其餘 3 人看到 disconnected 標示
 - [ ] 該玩家 10 秒內重開分頁登入 → 自動回房、其他人看到 reconnected
 - [ ] 該玩家 15 秒未回 → 全房收到 `room:aborted`、房間記憶體釋放
 - [ ] 同帳號開第二分頁登入 → 第一分頁被踢
