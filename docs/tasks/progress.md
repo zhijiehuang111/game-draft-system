@@ -6,14 +6,14 @@
 
 ## 模組
 
-- [ ] [模組 0：專案骨架](./00-setup.md) — pnpm workspaces / TS / Vite / Tailwind / proxy
-- [ ] [模組 1：Data Layer](./01-data-layer.md) — Postgres schema / migration / shared 型別 / repo
-- [ ] [模組 2：Auth](./02-auth.md) — 註冊 / 登入 / JWT cookie / socket 握手
-- [ ] [模組 3：Matchmaking](./03-matchmaking.md) — 全域佇列 / 湊滿建房 / Lobby UI
-- [ ] [模組 4：Draft Engine](./04-draft-engine.md) — 狀態機 / 倒數 / 分配 / pick / 結算
-- [ ] [模組 5：Trade](./05-trade.md) — 1v1 交換 / 原子互換 / 限制
-- [ ] [模組 6：Realtime / Reconnect](./06-realtime-reconnect.md) — socket registry / 15s grace / 作廢
-- [ ] [模組 7：Frontend Shell](./07-frontend-shell.md) — 條件渲染 / Zustand slice / 時鐘校正
+- [x] [模組 0：專案骨架](./00-setup.md) — pnpm workspaces / TS / Vite / Tailwind / proxy
+- [x] [模組 1：Data Layer](./01-data-layer.md) — Postgres schema / migration / shared 型別 / repo
+- [x] [模組 2：Auth](./02-auth.md) — 註冊 / 登入 / JWT cookie / socket 握手
+- [x] [模組 3：Matchmaking](./03-matchmaking.md) — 全域佇列 / 湊滿建房 / Lobby UI
+- [x] [模組 4：Draft Engine](./04-draft-engine.md) — 狀態機 / 倒數 / 分配 / pick / 結算
+- [ ] [模組 5：Trade](./05-trade.md) — 1v1 交換 / 原子互換 / 限制（**未開始**）
+- [ ] [模組 6：Realtime / Reconnect](./06-realtime-reconnect.md) — socket registry / 15s grace / 作廢（**進行中**：Socket.IO 基礎 / Registry / 錯誤事件已完成；`room:join`、斷線 grace、主動離房、前端 reconnect handler、驗證皆待補）
+- [ ] [模組 7：Frontend Shell](./07-frontend-shell.md) — 條件渲染 / Zustand slice / 時鐘校正（**進行中**：外殼 / store / socket 生命週期 / Champion 載入皆完成；時鐘校正、aborted 流程、Modal 元件、整體手動驗證待模組 5、6 接上）
 
 ## 建議執行順序
 

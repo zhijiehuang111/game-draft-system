@@ -32,8 +32,8 @@
 - [x] AuthScreen 成功登入後執行同上 connect 流程（`setUser` 觸發 App 的 `useEffect([user])` 啟動 connect + fetchChampions）
 
 ### 時鐘校正
-- [ ] 收到 `room:state` 或 `room:phase` 時：`offset = serverNow - Date.now()` 寫入 store — 等 module 4
-- [ ] `Countdown` 元件用 `phaseEndsAt - (Date.now() + offset)` 計算剩餘 — 等 module 4
+- [x] 收到 `room:state` 或 `room:phase` 時：`offset = serverNow - Date.now()` 寫入 store（`roomSlice.serverOffsetMs`，於 `setRoomState` / `applyPhaseChange` 內更新）
+- [x] `Countdown` 元件用 `phaseEndsAt - (Date.now() + offset)` 計算剩餘（`components/Countdown.tsx`）
 
 ### Champion 載入
 - [x] `api/champions.ts`：fetch + 回傳 `Champion[]`
