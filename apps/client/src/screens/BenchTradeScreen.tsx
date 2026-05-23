@@ -33,13 +33,15 @@ export function BenchTradeScreen() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {room.players.map((p) => {
             const isMe = p.userId === user.id;
+            const offline = p.userId in room.disconnected;
             return (
               <Card
                 key={p.userId}
-                className={isMe ? 'border-blue-500' : undefined}
+                className={`${isMe ? 'border-blue-500' : ''} ${offline ? 'opacity-50 grayscale' : ''}`}
               >
                 <div className="text-sm font-semibold">
                   {p.username} {isMe && <span className="text-blue-400">(you)</span>}
+                  {offline && <span className="ml-2 text-xs text-red-400">offline</span>}
                 </div>
                 <div className="text-xs text-slate-500 mb-2">slot {p.slot}</div>
                 {p.currentChampion ? (

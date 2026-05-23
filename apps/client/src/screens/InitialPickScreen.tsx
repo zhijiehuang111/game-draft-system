@@ -58,16 +58,20 @@ export function InitialPickScreen() {
       <section>
         <h2 className="text-sm font-semibold text-slate-300 mb-2">Players</h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {room.players.map((p) => (
-            <Card key={p.userId}>
-              <div className="text-sm font-semibold">
-                {p.username} <span className="text-slate-500">· slot {p.slot}</span>
-              </div>
-              <div className="mt-2 text-xs text-slate-400">
-                {p.currentChampion ? 'picked' : 'choosing…'}
-              </div>
-            </Card>
-          ))}
+          {room.players.map((p) => {
+            const offline = p.userId in room.disconnected;
+            return (
+              <Card key={p.userId} className={offline ? 'opacity-50 grayscale' : undefined}>
+                <div className="text-sm font-semibold">
+                  {p.username} <span className="text-slate-500">· slot {p.slot}</span>
+                  {offline && <span className="ml-2 text-xs text-red-400">offline</span>}
+                </div>
+                <div className="mt-2 text-xs text-slate-400">
+                  {p.currentChampion ? 'picked' : 'choosing…'}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </section>
     </div>

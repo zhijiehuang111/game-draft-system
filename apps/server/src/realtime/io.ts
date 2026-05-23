@@ -57,6 +57,7 @@ export function createRealtime(httpServer: HttpServer): Realtime {
       socket.join(`room:${roomId}`);
       registry.setRoom(userId, roomId);
       socket.emit('room:state', result.snapshot);
+      if (result.results) socket.emit('room:result', result.results);
     });
 
     socket.on('pick:initial', ({ championId }) => {
@@ -70,7 +71,11 @@ export function createRealtime(httpServer: HttpServer): Realtime {
     });
 
     socket.on('disconnect', () => {
-      matchmaker.leave(userId);
+      if (draftEngine.hasActiveRoom(userId)) {
+        draftEngine.markUserDisconnected(userId);
+      } else {
+        matchmaker.leave(userId);
+      }
       registry.unbind(socket.id);
     });
   });

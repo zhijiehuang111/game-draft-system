@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 import { insertResults } from "../db/repositories/results.repo.js";
 import type { AppIoServer } from "../realtime/io.js";
 import { allocateChampions, type Rng } from "./allocate.js";
+import type { DraftResult } from "@app/shared";
 import {
   PHASE_DURATION_MS,
   type Phase,
@@ -11,6 +12,7 @@ import {
 } from "./types.js";
 
 const RESULT_RETENTION_MS = 60_000;
+const DISCONNECT_GRACE_MS = 15_000;
 
 export interface RoomDeps {
   io: AppIoServer;
@@ -32,6 +34,8 @@ export class DraftRoom {
   private readonly userIds: Set<string>;
   private bench: string[] = [];
   private readonly disconnected: Record<string, number> = {};
+  private readonly disconnectTimers = new Map<string, NodeJS.Timeout>();
+  private lastResults: DraftResult[] | null = null;
   private readonly deps: RoomDeps;
 
   constructor(roomId: string, players: RoomPlayerInit[], deps: RoomDeps) {
@@ -181,6 +185,61 @@ export class DraftRoom {
     if (this.cleanupTimer) clearTimeout(this.cleanupTimer);
     this.phaseTimer = null;
     this.cleanupTimer = null;
+    for (const t of this.disconnectTimers.values()) clearTimeout(t);
+    this.disconnectTimers.clear();
+  }
+
+  isDisconnected(userId: string): boolean {
+    return userId in this.disconnected;
+  }
+
+  getResults(): DraftResult[] | null {
+    return this.lastResults;
+  }
+
+  markDisconnected(userId: string): void {
+    if (!this.userIds.has(userId)) return;
+    if (this.phase === "done" || this.phase === "aborted") return;
+    if (this.isDisconnected(userId)) return;
+
+    this.disconnected[userId] = Date.now();
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(userId);
+      this.checkStillGone(userId);
+    }, DISCONNECT_GRACE_MS);
+    this.disconnectTimers.set(userId, timer);
+    this.deps.io
+      .to(this.channel())
+      .emit("player:disconnected", { userId });
+  }
+
+  clearDisconnected(userId: string): void {
+    if (!this.isDisconnected(userId)) return;
+    delete this.disconnected[userId];
+    const timer = this.disconnectTimers.get(userId);
+    if (timer) {
+      clearTimeout(timer);
+      this.disconnectTimers.delete(userId);
+    }
+    this.deps.io
+      .to(this.channel())
+      .emit("player:reconnected", { userId });
+  }
+
+  abort(reason: string): void {
+    if (this.phase === "done" || this.phase === "aborted") return;
+    for (const t of this.disconnectTimers.values()) clearTimeout(t);
+    this.disconnectTimers.clear();
+
+    this.transitionTo("aborted");
+    this.deps.io.to(this.channel()).emit("room:aborted", { reason });
+    this.deps.onClosed?.(this.roomId);
+  }
+
+  private checkStillGone(userId: string): void {
+    if (this.phase === "done" || this.phase === "aborted") return;
+    if (!this.isDisconnected(userId)) return;
+    this.abort("player-left");
   }
 
   private transitionTo(phase: Phase): void {
@@ -266,6 +325,7 @@ export class DraftRoom {
       finalChampionId: e.finalChampionId,
       completedAt: new Date(),
     }));
+    this.lastResults = results;
     this.deps.io.to(this.channel()).emit("room:result", results);
 
     this.transitionTo("done");

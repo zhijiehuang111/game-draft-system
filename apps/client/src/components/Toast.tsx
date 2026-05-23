@@ -1,6 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type ToastKind = 'info' | 'error' | 'success';
+
+let externalShow: ((message: string, kind?: ToastKind) => void) | null = null;
+
+export function showToast(message: string, kind: ToastKind = 'info'): void {
+  externalShow?.(message, kind);
+}
 
 interface ToastItem {
   id: number;
@@ -27,6 +33,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const api = useMemo(() => ({ show }), [show]);
+
+  useEffect(() => {
+    externalShow = show;
+    return () => {
+      if (externalShow === show) externalShow = null;
+    };
+  }, [show]);
 
   return (
     <ToastContext.Provider value={api}>

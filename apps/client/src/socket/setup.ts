@@ -1,4 +1,5 @@
 import { io as ioClient } from 'socket.io-client';
+import { showToast } from '../components/Toast.js';
 import { useAppStore, type AppStore } from '../stores/index.js';
 import type { AppSocket } from '../stores/socketSlice.js';
 
@@ -76,7 +77,6 @@ export function connectSocket(): AppSocket {
   });
 
   socket.on('room:aborted', (payload) => {
-    console.warn('room aborted', payload.reason);
     const partial: Partial<AppStore> = {
       currentRoom: null,
       pendingTradeIncoming: null,
@@ -84,18 +84,48 @@ export function connectSocket(): AppSocket {
       draftResult: null,
     };
     useAppStore.setState(partial);
+    const message =
+      payload.reason === 'player-left'
+        ? '對手離線，房間已關閉'
+        : `房間已關閉 (${payload.reason})`;
+    showToast(message, 'error');
   });
 
   socket.on('player:disconnected', (payload) => {
-    console.info('player disconnected', payload.userId);
+    const room = useAppStore.getState().currentRoom;
+    if (!room) return;
+    useAppStore.setState({
+      currentRoom: {
+        ...room,
+        disconnected: { ...room.disconnected, [payload.userId]: Date.now() },
+      },
+    });
   });
 
   socket.on('player:reconnected', (payload) => {
-    console.info('player reconnected', payload.userId);
+    const room = useAppStore.getState().currentRoom;
+    if (!room) return;
+    const next = { ...room.disconnected };
+    delete next[payload.userId];
+    useAppStore.setState({
+      currentRoom: { ...room, disconnected: next },
+    });
   });
 
   socket.on('error', (payload) => {
     console.error('socket error', payload.code, payload.message);
+    if (payload.code === 'room-not-found' || payload.code === 'not-in-room') {
+      const hadRoom = useAppStore.getState().currentRoom !== null;
+      if (hadRoom) {
+        useAppStore.setState({
+          currentRoom: null,
+          pendingTradeIncoming: null,
+          pendingTradeOutgoing: null,
+          draftResult: null,
+        });
+        showToast('房間已關閉', 'error');
+      }
+    }
   });
 
   useAppStore.setState({ socket });
