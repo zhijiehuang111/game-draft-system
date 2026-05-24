@@ -6,12 +6,12 @@ export interface RoomSlice {
   currentRoom: RoomState | null;
   serverOffsetMs: number;
   pendingTradeIncoming: TradeRequest | null;
-  pendingTradeOutgoing: { tradeId: string } | null;
+  pendingTradeOutgoing: TradeRequest | null;
   draftResult: DraftResult[] | null;
   setRoomState(state: RoomState | null): void;
   applyPhaseChange(payload: { phase: Phase; phaseEndsAt: number; serverNow: number }): void;
   setPendingTradeIncoming(trade: TradeRequest | null): void;
-  setPendingTradeOutgoing(trade: { tradeId: string } | null): void;
+  setPendingTradeOutgoing(trade: TradeRequest | null): void;
   setDraftResult(result: DraftResult[] | null): void;
   clearRoom(): void;
 }

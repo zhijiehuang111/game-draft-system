@@ -9,45 +9,46 @@
 ## 子任務
 
 ### 後端資料結構
-- [ ] `apps/server/src/trade/types.ts`：`TradeRequest { id, fromUserId, toUserId, offerChampionId, wantChampionId, createdAt, expiresAt }`
-- [ ] Room 內持有 `pendingTrade: TradeRequest | null`（單一房間最多一筆 pending；同時鎖住 from/to 雙方）
-- [ ] 提供 `hasPendingTrade(userId)` 給 Draft Engine 查詢
+- [x] `apps/server/src/trade/types.ts`：`TradeRequest { id, fromUserId, toUserId, offerChampionId, wantChampionId, createdAt, expiresAt }`
+- [x] Room 內持有 `pendingTrades: Map<tradeId, TradeRequest>`（一房可同時 >1 筆，例如 A↔B、C↔D 並存）
+- [x] 鎖在 user 層級：每個 userId 最多涉入 1 筆 pending（不分發起 / 接收）；建議用 `lockedUsers: Map<userId, tradeId>` 反查
+- [x] 提供 `hasPendingTrade(userId)` 給 Draft Engine 查詢
 
 ### `trade:request` 處理
-- [ ] 驗證：
-  - [ ] phase === 'bench-trade'
-  - [ ] fromUserId !== targetUserId
-  - [ ] from 持有 offerChampionId
-  - [ ] target 持有 wantChampionId
-  - [ ] from 無 pending（不論發起 / 接收）→ `has-pending-trade`
-  - [ ] target 無 pending → `target-busy`
-- [ ] 通過：建立 `TradeRequest`（uuid id、expiresAt = now + 10_000）、設 pendingTrade、設超時 timer
-- [ ] emit `trade:incoming` 給 target、`trade:pending` 給 from
+- [x] 驗證：
+  - [x] phase === 'bench-trade'
+  - [x] fromUserId !== targetUserId
+  - [x] from 持有 offerChampionId
+  - [x] target 持有 wantChampionId
+  - [x] from 無 pending（不論發起 / 接收）→ `has-pending-trade`
+  - [x] target 無 pending → `target-busy`
+- [x] 通過：建立 `TradeRequest`（uuid id、expiresAt = now + 10_000）、加入 `pendingTrades`、鎖住 from / to、設超時 timer
+- [x] emit `trade:incoming` 給 target、`trade:pending` 給 from
 
 ### `trade:respond` 處理
-- [ ] 驗證：tradeId 對應 pendingTrade、回應者是 toUserId
-- [ ] accept=true：
-  - [ ] re-check：from / to 仍持有 snapshot 的英雄（否則 resolved=false）
-  - [ ] 原子互換 `from.currentChampion ↔ to.currentChampion`
-  - [ ] emit `trade:resolved { tradeId, accepted: true }` 給雙方
-  - [ ] 廣播 `room:state` 給全房
-- [ ] accept=false：
-  - [ ] emit `trade:resolved { tradeId, accepted: false }` 給雙方
-- [ ] 清 timer、清 pendingTrade（解鎖）
+- [x] 驗證：tradeId 對應某筆 pendingTrade、回應者是該筆的 toUserId
+- [x] accept=true：
+  - [x] re-check：from / to 仍持有 snapshot 的英雄（否則 resolved=false）
+  - [x] 原子互換 `from.currentChampion ↔ to.currentChampion`
+  - [x] emit `trade:resolved { tradeId, accepted: true }` 給雙方
+  - [x] 廣播 `room:state` 給全房
+- [x] accept=false：
+  - [x] emit `trade:resolved { tradeId, accepted: false }` 給雙方
+- [x] 清該筆 timer、從 `pendingTrades` 移除、解鎖該筆涉及的 from / to
 
 ### `trade:cancel` 處理（發起方主動取消）
-- [ ] 驗證：
-  - [ ] tradeId 對應 pendingTrade
-  - [ ] 呼叫者是 `fromUserId`（只有發起方能取消；接收方要拒絕請走 `trade:respond { accept: false }`）
-  - [ ] phase === 'bench-trade'（lock-in / aborted 時的清理由階段轉換負責，不接受手動 cancel）
-- [ ] 通過：
-  - [ ] emit `trade:resolved { tradeId, accepted: false, reason: 'cancelled' }` 給雙方
-  - [ ] 清 timer、清 pendingTrade（解鎖 from / to）
-- [ ] 失敗回 `error { code: 'no-pending-trade' | 'not-trade-owner' }`
+- [x] 驗證：
+  - [x] tradeId 對應某筆 pendingTrade
+  - [x] 呼叫者是該筆的 `fromUserId`（只有發起方能取消；接收方要拒絕請走 `trade:respond { accept: false }`）
+  - [x] phase === 'bench-trade'（lock-in / aborted 時的清理由階段轉換負責，不接受手動 cancel）
+- [x] 通過：
+  - [x] emit `trade:resolved { tradeId, accepted: false, reason: 'cancelled' }` 給雙方
+  - [x] 清該筆 timer、從 `pendingTrades` 移除、解鎖 from / to
+- [x] 失敗回 `error { code: 'no-pending-trade' | 'not-trade-owner' }`
 
 ### 超時處理
-- [ ] `setTimeout(10_000)` → 等同收到 `trade:respond { accept: false }`（reason: 'timeout'）
-- [ ] 房間進入 lock-in / aborted 時清掉 pendingTrade 與 timer
+- [x] 每筆獨立 `setTimeout(10_000)` → 等同收到 `trade:respond { accept: false }`（reason: 'timeout'）
+- [x] 房間進入 lock-in / aborted 時清掉所有 pendingTrades 與 timers
 
 ### 前端
 - [ ] `pendingTradeOutgoing` / `pendingTradeIncoming` 兩個 slice 欄位
@@ -69,3 +70,4 @@
 - [ ] A 對 B 發起後，C 對 B 發起 → C 收到 `target-busy`
 - [ ] A 發起中，A 試圖點板凳 → 拒絕 `has-pending-trade`
 - [ ] A 取消後立即重新發起 → 成功（解鎖正確）
+- [ ] A↔B 與 C↔D 同時 pending → 兩筆獨立並存、互不影響、各自解析

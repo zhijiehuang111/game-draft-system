@@ -41,7 +41,7 @@ export function connectSocket(): AppSocket {
         serverNow: Date.now(),
         players: [],
         bench: [],
-        pendingTrade: null,
+        pendingTrades: [],
         disconnected: {},
       },
     });
@@ -62,14 +62,27 @@ export function connectSocket(): AppSocket {
   });
 
   socket.on('trade:pending', (payload) => {
-    useAppStore.setState({ pendingTradeOutgoing: { tradeId: payload.tradeId } });
+    useAppStore.setState({ pendingTradeOutgoing: payload });
   });
 
-  socket.on('trade:resolved', () => {
-    useAppStore.setState({
-      pendingTradeIncoming: null,
-      pendingTradeOutgoing: null,
-    });
+  socket.on('trade:resolved', (payload) => {
+    const myUserId = useAppStore.getState().user?.id;
+    const iWasSender = myUserId === payload.fromUserId;
+    const iWasReceiver = myUserId === payload.toUserId;
+
+    const update: Partial<AppStore> = {};
+    if (iWasSender) update.pendingTradeOutgoing = null;
+    if (iWasReceiver) update.pendingTradeIncoming = null;
+    if (Object.keys(update).length > 0) useAppStore.setState(update);
+
+    if (payload.accepted) return;
+    if (payload.reason === 'cancelled' && iWasReceiver) {
+      showToast('Partner cancelled the trade', 'info');
+    } else if (payload.reason === 'timeout' && iWasSender) {
+      showToast('Trade timed out', 'error');
+    } else if (!payload.reason && iWasSender) {
+      showToast('Trade declined', 'error');
+    }
   });
 
   socket.on('room:result', (results) => {
@@ -125,6 +138,17 @@ export function connectSocket(): AppSocket {
         });
         showToast('Room closed', 'error');
       }
+      return;
+    }
+    const tradeErrors: Record<string, string> = {
+      'has-pending-trade': 'You already have a pending trade',
+      'target-busy': 'Target is already in a trade',
+      'no-pending-trade': 'Trade no longer pending',
+      'not-trade-owner': 'Only the requester can cancel',
+      'invalid-trade': 'Trade no longer valid',
+    };
+    if (tradeErrors[payload.code]) {
+      showToast(tradeErrors[payload.code], 'error');
     }
   });
 

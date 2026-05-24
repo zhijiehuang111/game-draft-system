@@ -1,6 +1,5 @@
 import { AllyRail } from '../components/AllyRail.js';
 import { AngledPanel } from '../components/AngledPanel.js';
-import { CircleFrame } from '../components/CircleFrame.js';
 import { CornerBracket, Ornament } from '../components/Ornament.js';
 import { PhaseHeader } from '../components/PhaseHeader.js';
 import { useAppStore } from '../stores/index.js';
@@ -10,14 +9,45 @@ export function BenchTradeScreen() {
   const user = useAppStore((s) => s.user);
   const socket = useAppStore((s) => s.socket);
   const champions = useAppStore((s) => s.champions);
+  const outgoing = useAppStore((s) => s.pendingTradeOutgoing);
+  const incoming = useAppStore((s) => s.pendingTradeIncoming);
 
   if (!room || !user) return null;
   const me = room.players.find((p) => p.userId === user.id);
   if (!me) return null;
 
+  const lockedUserIds = new Set<string>();
+  for (const t of room.pendingTrades) {
+    lockedUserIds.add(t.fromUserId);
+    lockedUserIds.add(t.toUserId);
+  }
+
+  const meHasPending = lockedUserIds.has(user.id);
+
   function pickBench(championId: string) {
-    if (!socket) return;
+    if (!socket || meHasPending) return;
     socket.emit('pick:bench', { championId });
+  }
+
+  function requestTrade(targetUserId: string) {
+    if (!socket || !me?.currentChampion) return;
+    const target = room?.players.find((p) => p.userId === targetUserId);
+    if (!target?.currentChampion) return;
+    socket.emit('trade:request', {
+      targetUserId,
+      offerChampionId: me.currentChampion,
+      wantChampionId: target.currentChampion,
+    });
+  }
+
+  function respondTrade(tradeId: string, accept: boolean) {
+    if (!socket) return;
+    socket.emit('trade:respond', { tradeId, accept });
+  }
+
+  function cancelTrade(tradeId: string) {
+    if (!socket) return;
+    socket.emit('trade:cancel', { tradeId });
   }
 
   const myChamp = me.currentChampion ? champions[me.currentChampion] : null;
@@ -33,11 +63,20 @@ export function BenchTradeScreen() {
 
       <div className="flex-1 grid grid-cols-[280px_1fr_280px] gap-6 px-8 pb-10 min-h-0">
         {/* ============== LEFT — ally rail ============== */}
-        <aside className="slide-in-left">
+        <aside className="slide-in-left relative z-30">
           <AllyRail
             players={room.players}
             meUserId={user.id}
             disconnected={room.disconnected}
+            trade={{
+              canStart: !!me.currentChampion && !meHasPending,
+              lockedUserIds,
+              outgoing,
+              incoming,
+              onRequest: requestTrade,
+              onRespond: respondTrade,
+              onCancel: cancelTrade,
+            }}
           />
         </aside>
 
@@ -106,8 +145,6 @@ export function BenchTradeScreen() {
           </div>
 
           <Ornament width={300} className="mt-2" />
-
-          {room.pendingTrade && <PendingTradeBadge />}
         </section>
 
         {/* ============== RIGHT — bench ============== */}
@@ -139,21 +176,22 @@ export function BenchTradeScreen() {
                         key={id}
                         type="button"
                         onClick={() => pickBench(id)}
-                        className="group relative transition-transform hover:translate-y-[-2px]"
+                        disabled={meHasPending}
+                        className={`group relative transition-transform ${meHasPending ? 'opacity-40 cursor-not-allowed' : 'hover:translate-y-[-2px] cursor-pointer'}`}
                         style={{ animation: `fade-up 0.4s ease-out ${i * 80}ms both` }}
                       >
                         <AngledPanel
                           variant="bronze"
                           notch={10}
                           inner="#010A13"
-                          className="group-hover:[&]:!bg-gold"
+                          className={meHasPending ? '' : 'group-hover:[&]:!bg-gold'}
                         >
                           <div className="relative aspect-square overflow-hidden">
                             {champ?.imageUrl ? (
                               <img
                                 src={champ.imageUrl}
                                 alt={champ.name}
-                                className="absolute inset-0 w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-300"
+                                className={`absolute inset-0 w-full h-full object-cover scale-110 transition-transform duration-300 ${meHasPending ? '' : 'group-hover:scale-125'}`}
                                 draggable={false}
                               />
                             ) : (
@@ -188,31 +226,10 @@ export function BenchTradeScreen() {
                   })}
                 </div>
               )}
-
-              {/* Trade ribbon */}
-              <div className="mt-auto pt-3 border-t border-bronze-dark/60">
-                <div className="h-label mb-2">Trade</div>
-                <div className="text-[11px] text-stone tracking-[0.12em] leading-relaxed">
-                  Trading with allies<br />coming soon.
-                </div>
-              </div>
             </div>
           </AngledPanel>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function PendingTradeBadge() {
-  return (
-    <div className="mt-2 flex items-center gap-2">
-      <CircleFrame size={24} tone="hex" glow>
-        <div className="w-full h-full" />
-      </CircleFrame>
-      <span className="text-hex text-[12px] tracking-[0.2em] uppercase">
-        Trade Pending
-      </span>
     </div>
   );
 }

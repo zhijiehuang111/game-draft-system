@@ -70,6 +70,26 @@ export function createRealtime(httpServer: HttpServer): Realtime {
       if (!result.ok) replyError(socket, result.code, result.message);
     });
 
+    socket.on('trade:request', ({ targetUserId, offerChampionId, wantChampionId }) => {
+      const result = draftEngine.handleTradeRequest(
+        userId,
+        targetUserId,
+        offerChampionId,
+        wantChampionId,
+      );
+      if (!result.ok) replyError(socket, result.code, result.message);
+    });
+
+    socket.on('trade:respond', ({ tradeId, accept }) => {
+      const result = draftEngine.handleTradeRespond(userId, tradeId, accept);
+      if (!result.ok) replyError(socket, result.code, result.message);
+    });
+
+    socket.on('trade:cancel', ({ tradeId }) => {
+      const result = draftEngine.handleTradeCancel(userId, tradeId);
+      if (!result.ok) replyError(socket, result.code, result.message);
+    });
+
     socket.on('disconnect', () => {
       if (draftEngine.hasActiveRoom(userId)) {
         draftEngine.markUserDisconnected(userId);

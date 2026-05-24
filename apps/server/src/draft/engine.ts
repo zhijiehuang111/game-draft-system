@@ -17,11 +17,21 @@ export interface DraftEngineDeps {
   pool?: Pool;
 }
 
+type EngineResult = { ok: true } | { ok: false; code: string; message: string };
+
 export interface DraftEngine {
   createRoom(roomId: string, players: DraftPlayer[]): Promise<void>;
   handleRoomJoin(userId: string, roomId: string): { ok: true; snapshot: RoomState; results: DraftResult[] | null } | { ok: false; code: string };
-  handlePickInitial(userId: string, championId: string): { ok: true } | { ok: false; code: string; message: string };
-  handlePickBench(userId: string, championId: string): { ok: true } | { ok: false; code: string; message: string };
+  handlePickInitial(userId: string, championId: string): EngineResult;
+  handlePickBench(userId: string, championId: string): EngineResult;
+  handleTradeRequest(
+    userId: string,
+    targetUserId: string,
+    offerChampionId: string,
+    wantChampionId: string,
+  ): EngineResult;
+  handleTradeRespond(userId: string, tradeId: string, accept: boolean): EngineResult;
+  handleTradeCancel(userId: string, tradeId: string): EngineResult;
   markUserDisconnected(userId: string): void;
   hasActiveRoom(userId: string): boolean;
 }
@@ -89,11 +99,39 @@ export function createDraftEngine(deps: DraftEngineDeps): DraftEngine {
     return room.handleBenchPick(userId, championId);
   }
 
+  function handleTradeRequest(
+    userId: string,
+    targetUserId: string,
+    offerChampionId: string,
+    wantChampionId: string,
+  ) {
+    const room = registry.getByUser(userId);
+    if (!room) return { ok: false as const, code: 'not-in-room', message: 'no active room' };
+    const result = room.handleTradeRequest(userId, targetUserId, offerChampionId, wantChampionId);
+    if (!result.ok) return result;
+    return { ok: true as const };
+  }
+
+  function handleTradeRespond(userId: string, tradeId: string, accept: boolean) {
+    const room = registry.getByUser(userId);
+    if (!room) return { ok: false as const, code: 'not-in-room', message: 'no active room' };
+    return room.handleTradeRespond(userId, tradeId, accept);
+  }
+
+  function handleTradeCancel(userId: string, tradeId: string) {
+    const room = registry.getByUser(userId);
+    if (!room) return { ok: false as const, code: 'not-in-room', message: 'no active room' };
+    return room.handleTradeCancel(userId, tradeId);
+  }
+
   return {
     createRoom,
     handleRoomJoin,
     handlePickInitial,
     handlePickBench,
+    handleTradeRequest,
+    handleTradeRespond,
+    handleTradeCancel,
     markUserDisconnected,
     hasActiveRoom,
   };

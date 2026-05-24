@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { insertResults } from "../db/repositories/results.repo.js";
 import type { AppIoServer } from "../realtime/io.js";
+import { TRADE_TTL_MS, type TradeRequest, type TradeResolvedReason } from "../trade/types.js";
 import { allocateChampions, type Rng } from "./allocate.js";
 import type { DraftResult } from "@app/shared";
 import {
@@ -19,8 +21,6 @@ export interface RoomDeps {
   pool: Pool;
   championPool: readonly string[];
   onClosed?: (roomId: string) => void;
-  /** Hook for the Trade module; returns true if user is in a pending trade. */
-  hasPendingTrade?: (roomId: string, userId: string) => boolean;
   rng?: Rng;
 }
 
@@ -35,6 +35,10 @@ export class DraftRoom {
   private bench: string[] = [];
   private readonly disconnected: Record<string, number> = {};
   private readonly disconnectTimers = new Map<string, NodeJS.Timeout>();
+  private readonly pendingTrades = new Map<string, TradeRequest>();
+  private readonly tradeTimers = new Map<string, NodeJS.Timeout>();
+  /** userId -> tradeId; either side of a pending trade is locked. */
+  private readonly lockedUsers = new Map<string, string>();
   private lastResults: DraftResult[] | null = null;
   private readonly deps: RoomDeps;
 
@@ -79,7 +83,7 @@ export class DraftRoom {
       serverNow: Date.now(),
       players: this.players.map((p) => ({ ...p, allocated: [...p.allocated] })),
       bench: [...this.bench],
-      pendingTrade: null,
+      pendingTrades: [...this.pendingTrades.values()].map((t) => ({ ...t })),
       disconnected: { ...this.disconnected },
     };
   }
@@ -156,10 +160,10 @@ export class DraftRoom {
         message: "no champion to swap",
       };
     }
-    if (this.deps.hasPendingTrade?.(this.roomId, userId)) {
+    if (this.hasPendingTrade(userId)) {
       return {
         ok: false,
-        code: "pending-trade",
+        code: "has-pending-trade",
         message: "cannot pick during pending trade",
       };
     }
@@ -187,6 +191,158 @@ export class DraftRoom {
     this.cleanupTimer = null;
     for (const t of this.disconnectTimers.values()) clearTimeout(t);
     this.disconnectTimers.clear();
+    for (const t of this.tradeTimers.values()) clearTimeout(t);
+    this.tradeTimers.clear();
+    this.pendingTrades.clear();
+    this.lockedUsers.clear();
+  }
+
+  hasPendingTrade(userId: string): boolean {
+    return this.lockedUsers.has(userId);
+  }
+
+  handleTradeRequest(
+    fromUserId: string,
+    targetUserId: string,
+    offerChampionId: string,
+    wantChampionId: string,
+  ):
+    | { ok: true; trade: TradeRequest }
+    | { ok: false; code: string; message: string } {
+    if (this.phase !== "bench-trade") {
+      return { ok: false, code: "wrong-phase", message: "not bench-trade phase" };
+    }
+    if (fromUserId === targetUserId) {
+      return { ok: false, code: "self-trade", message: "cannot trade with self" };
+    }
+    const from = this.players.find((p) => p.userId === fromUserId);
+    if (!from) return { ok: false, code: "not-in-room", message: "user not in room" };
+    const target = this.players.find((p) => p.userId === targetUserId);
+    if (!target) {
+      return { ok: false, code: "target-not-in-room", message: "target not in room" };
+    }
+    if (from.currentChampion !== offerChampionId) {
+      return { ok: false, code: "offer-not-held", message: "offer champion not held" };
+    }
+    if (target.currentChampion !== wantChampionId) {
+      return { ok: false, code: "want-not-held", message: "want champion not held by target" };
+    }
+    if (this.hasPendingTrade(fromUserId)) {
+      return { ok: false, code: "has-pending-trade", message: "you already have a pending trade" };
+    }
+    if (this.hasPendingTrade(targetUserId)) {
+      return { ok: false, code: "target-busy", message: "target has a pending trade" };
+    }
+
+    const now = Date.now();
+    const trade: TradeRequest = {
+      tradeId: randomUUID(),
+      fromUserId,
+      toUserId: targetUserId,
+      offerChampionId,
+      wantChampionId,
+      createdAt: now,
+      expiresAt: now + TRADE_TTL_MS,
+    };
+    this.pendingTrades.set(trade.tradeId, trade);
+    this.lockedUsers.set(fromUserId, trade.tradeId);
+    this.lockedUsers.set(targetUserId, trade.tradeId);
+
+    const timer = setTimeout(() => {
+      this.tradeTimers.delete(trade.tradeId);
+      this.resolveTrade(trade.tradeId, { accepted: false, reason: "timeout" });
+    }, TRADE_TTL_MS);
+    this.tradeTimers.set(trade.tradeId, timer);
+
+    this.deps.io.to(`user:${targetUserId}`).emit("trade:incoming", { ...trade });
+    this.deps.io.to(`user:${fromUserId}`).emit("trade:pending", { ...trade });
+    this.broadcastState();
+    return { ok: true, trade };
+  }
+
+  handleTradeRespond(
+    userId: string,
+    tradeId: string,
+    accept: boolean,
+  ): { ok: true } | { ok: false; code: string; message: string } {
+    const trade = this.pendingTrades.get(tradeId);
+    if (!trade) {
+      return { ok: false, code: "no-pending-trade", message: "trade not found" };
+    }
+    if (trade.toUserId !== userId) {
+      return { ok: false, code: "not-trade-target", message: "only the target can respond" };
+    }
+    if (!accept) {
+      this.resolveTrade(tradeId, { accepted: false });
+      return { ok: true };
+    }
+
+    const from = this.players.find((p) => p.userId === trade.fromUserId);
+    const to = this.players.find((p) => p.userId === trade.toUserId);
+    if (
+      !from ||
+      !to ||
+      from.currentChampion !== trade.offerChampionId ||
+      to.currentChampion !== trade.wantChampionId
+    ) {
+      this.resolveTrade(tradeId, { accepted: false });
+      return { ok: true };
+    }
+
+    from.currentChampion = trade.wantChampionId;
+    to.currentChampion = trade.offerChampionId;
+    this.resolveTrade(tradeId, { accepted: true });
+    return { ok: true };
+  }
+
+  handleTradeCancel(
+    userId: string,
+    tradeId: string,
+  ): { ok: true } | { ok: false; code: string; message: string } {
+    if (this.phase !== "bench-trade") {
+      return { ok: false, code: "wrong-phase", message: "not bench-trade phase" };
+    }
+    const trade = this.pendingTrades.get(tradeId);
+    if (!trade) {
+      return { ok: false, code: "no-pending-trade", message: "trade not found" };
+    }
+    if (trade.fromUserId !== userId) {
+      return { ok: false, code: "not-trade-owner", message: "only the requester can cancel" };
+    }
+    this.resolveTrade(tradeId, { accepted: false, reason: "cancelled" });
+    return { ok: true };
+  }
+
+  private resolveTrade(
+    tradeId: string,
+    outcome: { accepted: boolean; reason?: TradeResolvedReason },
+  ): void {
+    const trade = this.pendingTrades.get(tradeId);
+    if (!trade) return;
+    this.pendingTrades.delete(tradeId);
+    this.lockedUsers.delete(trade.fromUserId);
+    this.lockedUsers.delete(trade.toUserId);
+    const timer = this.tradeTimers.get(tradeId);
+    if (timer) {
+      clearTimeout(timer);
+      this.tradeTimers.delete(tradeId);
+    }
+    const payload = {
+      tradeId,
+      fromUserId: trade.fromUserId,
+      toUserId: trade.toUserId,
+      ...outcome,
+    };
+    this.deps.io.to(`user:${trade.fromUserId}`).emit("trade:resolved", payload);
+    this.deps.io.to(`user:${trade.toUserId}`).emit("trade:resolved", payload);
+    this.broadcastState();
+  }
+
+  private clearAllPendingTrades(): void {
+    for (const timer of this.tradeTimers.values()) clearTimeout(timer);
+    this.tradeTimers.clear();
+    this.pendingTrades.clear();
+    this.lockedUsers.clear();
   }
 
   isDisconnected(userId: string): boolean {
@@ -248,6 +404,7 @@ export class DraftRoom {
       this.phaseTimer = null;
     }
     this.phase = phase;
+    if (phase !== "bench-trade") this.clearAllPendingTrades();
 
     if (phase === "done" || phase === "aborted") {
       this.phaseEndsAt = Date.now();

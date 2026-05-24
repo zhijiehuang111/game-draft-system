@@ -1,4 +1,4 @@
-import type { Phase, RoomState, TradeRequest } from './room.js';
+import type { Phase, RoomState, TradeRequest, TradeResolvedReason } from './room.js';
 import type { DraftResult } from './db.js';
 
 export interface ServerToClientEvents {
@@ -7,8 +7,8 @@ export interface ServerToClientEvents {
   'room:state': (payload: RoomState) => void;
   'room:phase': (payload: { phase: Phase; phaseEndsAt: number; serverNow: number }) => void;
   'trade:incoming': (payload: TradeRequest) => void;
-  'trade:pending': (payload: { tradeId: string }) => void;
-  'trade:resolved': (payload: { tradeId: string; accepted: boolean }) => void;
+  'trade:pending': (payload: TradeRequest) => void;
+  'trade:resolved': (payload: { tradeId: string; fromUserId: string; toUserId: string; accepted: boolean; reason?: TradeResolvedReason }) => void;
   'room:result': (payload: DraftResult[]) => void;
   'room:aborted': (payload: { reason: string }) => void;
   'player:disconnected': (payload: { userId: string }) => void;
@@ -24,6 +24,7 @@ export interface ClientToServerEvents {
   'pick:bench': (payload: { championId: string }) => void;
   'trade:request': (payload: { targetUserId: string; offerChampionId: string; wantChampionId: string }) => void;
   'trade:respond': (payload: { tradeId: string; accept: boolean }) => void;
+  'trade:cancel': (payload: { tradeId: string }) => void;
 }
 
 export interface SocketData {

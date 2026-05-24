@@ -246,7 +246,7 @@ interface RoomState {
   serverNow: number;            // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
   players: PlayerState[];        // 4 人
   bench: string[];               // 階段 2 可挑英雄
-  pendingTrade: TradeRequest | null;
+  pendingTrades: TradeRequest[]; // 一房可同時 >1 筆（e.g. A↔B、C↔D 並存）
   disconnected: Map<string, number>; // userId -> disconnectedAt
 }
 
@@ -344,6 +344,7 @@ interface TradeRequest {
 ### 5.3 規則
 
 - 每位玩家任意時刻最多涉入 1 筆 pending trade（不分發起方或接收方）（proposal §4.2）
+- 鎖定粒度為 **per-user**，非 per-room；4 人房可同時有兩筆獨立交易（例如 A↔B 與 C↔D 並存），各自解析互不影響
 - 申請建立後，雙方在解析前不可發 `pick:bench`、發起新 `trade:request`、或接收他人的 `trade:request`（鎖定）
 - 10 秒超時 → 自動視為拒絕
 - 發起方可在解析前主動 `trade:cancel`；接收方要拒絕請走 `trade:respond { accept: false }`，不可用 cancel
@@ -363,7 +364,7 @@ sequenceDiagram
   else 驗證通過
     S->>S: 建 TradeRequest，鎖定 A、B
     S-->>B: trade:incoming { tradeId, fromA, offer, want }
-    S-->>A: trade:pending { tradeId }
+    S-->>A: trade:pending TradeRequest
 
     alt B 接受
       B->>S: trade:respond { tradeId, accept=true }
@@ -403,9 +404,9 @@ sequenceDiagram
 
 | 方向 | 事件            | Payload                                                  | 說明                                          |
 | ---- | --------------- | -------------------------------------------------------- | --------------------------------------------- |
-| S→C  | `trade:pending` | `{ tradeId }`                                            | 對發起方確認申請已建立                        |
+| S→C  | `trade:pending` | `TradeRequest`                                           | 對發起方確認申請已建立（同 incoming，便於 UI 直接渲染）|
 | C→S  | `trade:cancel`  | `{ tradeId }`                                            | 發起方主動取消（只有 `fromUserId` 可呼叫）    |
-| S→C  | `trade:resolved`| `{ tradeId, accepted, reason?: 'cancelled' \| 'timeout' }` | 增補 `reason` 供前端區分拒絕 / 取消 / 超時    |
+| S→C  | `trade:resolved`| `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | `fromUserId`/`toUserId` 供前端辨別自己的角色（決定要不要跳通知）；`reason` 區分拒絕 / 取消 / 超時 |
 
 **廣播範圍**：
 
@@ -616,8 +617,8 @@ interface Champion {
 | C→S  | `trade:respond`       | `{ tradeId, accept }`                                      | Trade        |
 | C→S  | `trade:cancel`        | `{ tradeId }`                                              | Trade        |
 | S→C  | `trade:incoming`      | `TradeRequest`                                             | Trade        |
-| S→C  | `trade:pending`       | `{ tradeId }`                                              | Trade        |
-| S→C  | `trade:resolved`      | `{ tradeId, accepted, reason?: 'cancelled' \| 'timeout' }` | Trade        |
+| S→C  | `trade:pending`       | `TradeRequest`                                             | Trade        |
+| S→C  | `trade:resolved`      | `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | Trade |
 | S→C  | `room:result`         | `DraftResult[]`                                            | Draft Engine |
 | S→C  | `room:aborted`        | `{ reason }`                                               | Realtime     |
 | S→C  | `player:disconnected` | `{ userId }`                                               | Realtime     |

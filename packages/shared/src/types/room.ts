@@ -14,7 +14,11 @@ export interface TradeRequest {
   toUserId: string;
   offerChampionId: string;
   wantChampionId: string;
+  createdAt: number;
+  expiresAt: number;
 }
+
+export type TradeResolvedReason = 'cancelled' | 'timeout';
 
 export interface RoomState {
   roomId: string;
@@ -23,6 +27,6 @@ export interface RoomState {
   serverNow: number;
   players: PlayerState[];
   bench: string[];
-  pendingTrade: TradeRequest | null;
+  pendingTrades: TradeRequest[];
   disconnected: Record<string, number>;
 }
