@@ -10,7 +10,7 @@
 
 ### 條件渲染外殼
 - [x] `apps/client/src/App.tsx`：依 store 判斷渲染 AuthScreen / LobbyScreen / RoomScreen / ResultScreen
-- [ ] `room.phase === 'aborted'` → toast + 清 room → 回 Lobby（單獨處理）— socket handler 已清 currentRoom，但 toast 觸發 + reason 顯示待 module 6
+- [x] `room.phase === 'aborted'` → toast + 清 room → 回 Lobby（單獨處理）— socket handler 已清 currentRoom，但 toast 觸發 + reason 顯示待 module 6
 - [x] 全域 toast 元件（簡易）：`useToast` hook 或第三方輕量套件
 
 ### Zustand store（slice pattern）
