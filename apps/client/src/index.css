@@ -1,7 +1,156 @@
 @import "tailwindcss";
 
+@theme {
+  --color-void: #010A13;
+  --color-void-2: #0A1428;
+  --color-void-3: #091428;
+  --color-hex: #0AC8B9;
+  --color-hex-dark: #005A82;
+  --color-hex-glow: #0AC8B9;
+  --color-gold: #C8AA6E;
+  --color-gold-light: #F0E6D2;
+  --color-gold-soft: #B89F62;
+  --color-bronze: #785A28;
+  --color-bronze-dark: #463714;
+  --color-bronze-deep: #1E2328;
+  --color-parchment: #F0E6D2;
+  --color-stone: #A09B8C;
+  --color-stone-dim: #5B5A56;
+  --color-crimson: #C8404B;
+  --color-crimson-dark: #5C1E20;
+
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Spectral', serif;
+  --font-label: 'Marcellus', serif;
+}
+
 html, body, #root {
   min-height: 100vh;
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background: #010A13;
+  color: #F0E6D2;
+  font-family: 'Spectral', serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10, 200, 185, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 110%, rgba(200, 170, 110, 0.06), transparent 60%),
+    radial-gradient(ellipse at center, #0A1428 0%, #010A13 60%, #000 100%) fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* film grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>");
+}
+
+/* vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+}
+
+#root {
+  position: relative;
+  z-index: 2;
+}
+
+.gold-divider {
+  background: linear-gradient(90deg, transparent 0%, #C8AA6E 20%, #F0E6D2 50%, #C8AA6E 80%, transparent 100%);
+}
+.gold-divider-soft {
+  background: linear-gradient(90deg, transparent 0%, #785A28 50%, transparent 100%);
+}
+
+/* heading look — letterspaced caps */
+.h-display {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #F0E6D2;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+.h-label {
+  font-family: 'Marcellus', serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: #A09B8C;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.glow-hex {
+  box-shadow: 0 0 24px rgba(10, 200, 185, 0.35), inset 0 0 14px rgba(10, 200, 185, 0.15);
+}
+
+/* slow pulse on hover-able elements */
+@keyframes lol-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(200, 170, 110, 0.0); }
+  50%      { box-shadow: 0 0 22px rgba(200, 170, 110, 0.55); }
+}
+.lol-pulse:hover { animation: lol-pulse 1.4s ease-in-out infinite; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.5s ease-out both; }
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in-left { animation: slide-in-left 0.45s ease-out both; }
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in-right { animation: slide-in-right 0.45s ease-out both; }
+
+/* hex portrait — used in BenchTrade central showcase */
+.hex-shape {
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+
+input.lol-input {
+  background: #010A13;
+  border: 1px solid #463714;
+  color: #F0E6D2;
+  padding: 10px 14px;
+  font-family: 'Spectral', serif;
+  letter-spacing: 0.05em;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  border-radius: 0;
+}
+input.lol-input:focus {
+  border-color: #C8AA6E;
+  box-shadow: 0 0 0 1px #C8AA6E inset, 0 0 12px rgba(200, 170, 110,0.25);
+}
+input.lol-input::placeholder { color: #5B5A56; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #010A13; }
+::-webkit-scrollbar-thumb { background: #463714; }
+::-webkit-scrollbar-thumb:hover { background: #785A28; }

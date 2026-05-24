@@ -86,8 +86,8 @@ export function connectSocket(): AppSocket {
     useAppStore.setState(partial);
     const message =
       payload.reason === 'player-left'
-        ? '對手離線，房間已關閉'
-        : `房間已關閉 (${payload.reason})`;
+        ? 'Opponent offline, room closed'
+        : `Room closed (${payload.reason})`;
     showToast(message, 'error');
   });
 
@@ -123,7 +123,7 @@ export function connectSocket(): AppSocket {
           pendingTradeOutgoing: null,
           draftResult: null,
         });
-        showToast('房間已關閉', 'error');
+        showToast('Room closed', 'error');
       }
     }
   });

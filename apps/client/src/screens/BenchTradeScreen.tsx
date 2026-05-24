@@ -1,81 +1,218 @@
-import { Card } from '../components/Card.js';
-import { ChampionAvatar } from '../components/ChampionAvatar.js';
-import { Countdown } from '../components/Countdown.js';
+import { AllyRail } from '../components/AllyRail.js';
+import { AngledPanel } from '../components/AngledPanel.js';
+import { CircleFrame } from '../components/CircleFrame.js';
+import { CornerBracket, Ornament } from '../components/Ornament.js';
+import { PhaseHeader } from '../components/PhaseHeader.js';
 import { useAppStore } from '../stores/index.js';
 
 export function BenchTradeScreen() {
   const room = useAppStore((s) => s.currentRoom);
   const user = useAppStore((s) => s.user);
   const socket = useAppStore((s) => s.socket);
+  const champions = useAppStore((s) => s.champions);
+
   if (!room || !user) return null;
+  const me = room.players.find((p) => p.userId === user.id);
+  if (!me) return null;
 
   function pickBench(championId: string) {
     if (!socket) return;
     socket.emit('pick:bench', { championId });
   }
 
+  const myChamp = me.currentChampion ? champions[me.currentChampion] : null;
+
   return (
-    <div className="min-h-screen p-6 text-slate-100 space-y-6">
-      <header className="flex justify-between items-baseline">
-        <div>
-          <h1 className="text-xl font-semibold">Bench & Trade</h1>
-          <p className="text-xs text-slate-400">
-            Swap with the bench, or trade with another player
-          </p>
-        </div>
-        <div className="text-2xl font-mono">
-          <Countdown phaseEndsAt={room.phaseEndsAt} />
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <div className="px-8 pt-6 pb-3">
+        <PhaseHeader
+          phaseEndsAt={room.phaseEndsAt}
+          tone="hex"
+        />
+      </div>
 
-      <section>
-        <h2 className="text-sm font-semibold text-slate-300 mb-2">Players</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {room.players.map((p) => {
-            const isMe = p.userId === user.id;
-            const offline = p.userId in room.disconnected;
-            return (
-              <Card
-                key={p.userId}
-                className={`${isMe ? 'border-blue-500' : ''} ${offline ? 'opacity-50 grayscale' : ''}`}
+      <div className="flex-1 grid grid-cols-[280px_1fr_280px] gap-6 px-8 pb-10 min-h-0">
+        {/* ============== LEFT — ally rail ============== */}
+        <aside className="slide-in-left">
+          <AllyRail
+            players={room.players}
+            meUserId={user.id}
+            disconnected={room.disconnected}
+          />
+        </aside>
+
+        {/* ============== CENTER — featured champion ============== */}
+        <section className="flex flex-col items-center justify-start gap-6 fade-up pt-4">
+          {/* ornate hex showcase */}
+          <div className="relative">
+            <div
+              className="absolute -inset-10 opacity-50 blur-3xl pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(circle, #0AC8B9 0%, transparent 65%)',
+              }}
+            />
+            {/* rotating hex ring */}
+            <div
+              className="absolute -inset-6 pointer-events-none"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, transparent, rgba(10, 200, 185,0.35), transparent 35%, transparent 50%, rgba(200, 170, 110,0.35), transparent 85%)',
+                clipPath:
+                  'polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)',
+                animation: 'lol-pulse 4s ease-in-out infinite',
+              }}
+            />
+
+            <div
+              className="relative hex-shape"
+              style={{
+                width: 240,
+                height: 240,
+                background:
+                  'conic-gradient(from 200deg, #C8AA6E, #F0E6D2 25%, #C8AA6E 50%, #785A28 75%, #C8AA6E)',
+                padding: 3,
+              }}
+            >
+              <div
+                className="w-full h-full hex-shape overflow-hidden"
+                style={{ background: '#0A1428' }}
               >
-                <div className="text-sm font-semibold">
-                  {p.username} {isMe && <span className="text-blue-400">(you)</span>}
-                  {offline && <span className="ml-2 text-xs text-red-400">offline</span>}
-                </div>
-                <div className="text-xs text-slate-500 mb-2">slot {p.slot}</div>
-                {p.currentChampion ? (
-                  <ChampionAvatar championId={p.currentChampion} size={64} />
+                {myChamp?.imageUrl ? (
+                  <img
+                    src={myChamp.imageUrl}
+                    alt={myChamp.name}
+                    className="w-full h-full object-cover scale-110"
+                    draggable={false}
+                  />
                 ) : (
-                  <div className="text-xs text-slate-500">no champion</div>
+                  <div className="w-full h-full flex items-center justify-center text-stone/60">
+                    —
+                  </div>
                 )}
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+              </div>
+            </div>
 
-      <section>
-        <h2 className="text-sm font-semibold text-slate-300 mb-2">
-          Bench ({room.bench.length})
-        </h2>
-        {room.bench.length === 0 ? (
-          <div className="text-xs text-slate-500">bench is empty</div>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {room.bench.map((id) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => pickBench(id)}
-                className="p-2 rounded border border-slate-700 hover:border-blue-500 transition-colors"
-              >
-                <ChampionAvatar championId={id} size={64} />
-              </button>
-            ))}
           </div>
-        )}
-      </section>
+
+          <div
+            className="text-parchment text-[18px] mt-6"
+            style={{
+              fontFamily: "'Marcellus', serif",
+              letterSpacing: '0.18em',
+            }}
+          >
+            {myChamp?.name ?? 'Not Picked'}
+          </div>
+
+          <Ornament width={300} className="mt-2" />
+
+          {room.pendingTrade && <PendingTradeBadge />}
+        </section>
+
+        {/* ============== RIGHT — bench ============== */}
+        <aside className="slide-in-right">
+          <AngledPanel
+            variant="bronze"
+            className="h-full"
+            inner="linear-gradient(180deg, rgba(10, 20, 40,0.85) 0%, rgba(1, 10, 19,0.95) 100%)"
+          >
+            <div className="p-4 flex flex-col gap-4 h-full">
+              <div className="flex items-center gap-2">
+                <span className="h-label">Bench</span>
+                <span className="flex-1 h-px gold-divider-soft" />
+                <span className="h-label numeric text-gold/80">
+                  {room.bench.length}
+                </span>
+              </div>
+
+              {room.bench.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-stone/60 text-[12px] tracking-[0.2em] text-center px-4">
+                  No bench<br />champions
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {room.bench.map((id, i) => {
+                    const champ = champions[id];
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => pickBench(id)}
+                        className="group relative transition-transform hover:translate-y-[-2px]"
+                        style={{ animation: `fade-up 0.4s ease-out ${i * 80}ms both` }}
+                      >
+                        <AngledPanel
+                          variant="bronze"
+                          notch={10}
+                          inner="#010A13"
+                          className="group-hover:[&]:!bg-gold"
+                        >
+                          <div className="relative aspect-square overflow-hidden">
+                            {champ?.imageUrl ? (
+                              <img
+                                src={champ.imageUrl}
+                                alt={champ.name}
+                                className="absolute inset-0 w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-300"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-void-2" />
+                            )}
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                background:
+                                  'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.85))',
+                              }}
+                            />
+                            <div className="absolute top-1 left-1 pointer-events-none">
+                              <CornerBracket size={10} color="#C8AA6E" />
+                            </div>
+                            <div className="absolute bottom-0 inset-x-0 px-2 pb-1.5 pt-3">
+                              <div
+                                className="text-center text-[11px] truncate"
+                                style={{
+                                  fontFamily: "'Marcellus', serif",
+                                  color: '#F0E6D2',
+                                  letterSpacing: '0.08em',
+                                }}
+                              >
+                                {champ?.name ?? id}
+                              </div>
+                            </div>
+                          </div>
+                        </AngledPanel>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Trade ribbon */}
+              <div className="mt-auto pt-3 border-t border-bronze-dark/60">
+                <div className="h-label mb-2">Trade</div>
+                <div className="text-[11px] text-stone tracking-[0.12em] leading-relaxed">
+                  Trading with allies<br />coming soon.
+                </div>
+              </div>
+            </div>
+          </AngledPanel>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function PendingTradeBadge() {
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <CircleFrame size={24} tone="hex" glow>
+        <div className="w-full h-full" />
+      </CircleFrame>
+      <span className="text-hex text-[12px] tracking-[0.2em] uppercase">
+        Trade Pending
+      </span>
     </div>
   );
 }
