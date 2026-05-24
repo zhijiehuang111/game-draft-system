@@ -35,8 +35,18 @@
   - [ ] emit `trade:resolved { tradeId, accepted: false }` 給雙方
 - [ ] 清 timer、清 pendingTrade（解鎖）
 
+### `trade:cancel` 處理（發起方主動取消）
+- [ ] 驗證：
+  - [ ] tradeId 對應 pendingTrade
+  - [ ] 呼叫者是 `fromUserId`（只有發起方能取消；接收方要拒絕請走 `trade:respond { accept: false }`）
+  - [ ] phase === 'bench-trade'（lock-in / aborted 時的清理由階段轉換負責，不接受手動 cancel）
+- [ ] 通過：
+  - [ ] emit `trade:resolved { tradeId, accepted: false, reason: 'cancelled' }` 給雙方
+  - [ ] 清 timer、清 pendingTrade（解鎖 from / to）
+- [ ] 失敗回 `error { code: 'no-pending-trade' | 'not-trade-owner' }`
+
 ### 超時處理
-- [ ] `setTimeout(10_000)` → 等同收到 `trade:respond { accept: false }`
+- [ ] `setTimeout(10_000)` → 等同收到 `trade:respond { accept: false }`（reason: 'timeout'）
 - [ ] 房間進入 lock-in / aborted 時清掉 pendingTrade 與 timer
 
 ### 前端
@@ -44,14 +54,18 @@
 - [ ] socket handler：
   - [ ] `trade:incoming` → 設 pendingTradeIncoming
   - [ ] `trade:pending` → 設 pendingTradeOutgoing
-  - [ ] `trade:resolved` → 清對應欄位、跳 toast（成功 / 失敗）
+  - [ ] `trade:resolved` → 清對應欄位、跳 toast（成功 / 失敗 / 已取消）
 - [ ] `PlayerCard`：右下交換 icon，點擊 → emit `trade:request { targetUserId, offer=自己當前, want=對方當前 }`
 - [ ] `TradeModal`：訂閱 pendingTradeIncoming → 顯示「A 想用 X 跟你換 Y」+ 接受 / 拒絕 + 倒數 10s
-- [ ] 在等待回應狀態下，UI 禁用自己再次發起 trade / 點板凳
+- [ ] 發起方等待回應 UI（基於 pendingTradeOutgoing）：顯示「等待對方回應…」+ 倒數 10s + **取消按鈕** → emit `trade:cancel { tradeId }`
+- [ ] 在等待回應狀態下，UI 禁用自己再次發起 trade / 點板凳（取消按鈕除外）
 
 ### 驗證
 - [ ] A 對 B 發起 → B 接受 → 英雄互換 + 全房畫面更新
 - [ ] A 對 B 發起 → B 拒絕 → 雙方狀態解鎖
 - [ ] A 對 B 發起 → 10s 不回應 → 自動視為拒絕
+- [ ] A 對 B 發起 → A 主動 `trade:cancel` → 雙方收到 `trade:resolved { accepted: false, reason: 'cancelled' }`、狀態解鎖
+- [ ] B（接收方）試圖 `trade:cancel` → 拒絕 `not-trade-owner`
 - [ ] A 對 B 發起後，C 對 B 發起 → C 收到 `target-busy`
 - [ ] A 發起中，A 試圖點板凳 → 拒絕 `has-pending-trade`
+- [ ] A 取消後立即重新發起 → 成功（解鎖正確）

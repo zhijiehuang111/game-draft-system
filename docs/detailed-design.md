@@ -323,7 +323,7 @@ interface PlayerState {
 
 ### 5.1 職責
 
-- 處理 1v1 交換申請、回應、超時
+- 處理 1v1 交換申請、回應、超時、發起方主動取消
 - 確保雙方英雄互換的原子性
 - 限制同時申請數
 
@@ -346,6 +346,7 @@ interface TradeRequest {
 - 每位玩家任意時刻最多涉入 1 筆 pending trade（不分發起方或接收方）（proposal §4.2）
 - 申請建立後，雙方在解析前不可發 `pick:bench`、發起新 `trade:request`、或接收他人的 `trade:request`（鎖定）
 - 10 秒超時 → 自動視為拒絕
+- 發起方可在解析前主動 `trade:cancel`；接收方要拒絕請走 `trade:respond { accept: false }`，不可用 cancel
 
 ### 5.4 交換流程
 
@@ -375,6 +376,11 @@ sequenceDiagram
       Note over S: 或 expiresAt 到期
       S-->>A: trade:resolved { tradeId, accepted=false }
       S-->>B: trade:resolved { tradeId, accepted=false }
+    else A 主動取消
+      A->>S: trade:cancel { tradeId }
+      S->>S: 驗證呼叫者 = fromUserId
+      S-->>A: trade:resolved { tradeId, accepted=false, reason='cancelled' }
+      S-->>B: trade:resolved { tradeId, accepted=false, reason='cancelled' }
     end
     S->>S: 解除鎖定
   end
@@ -387,15 +393,19 @@ sequenceDiagram
 - 「A 已有 pending（無論發起或接收），又發 `trade:request`」：拒絕，回 `error { code: 'has-pending-trade' }`
 - 「A 已有 pending，C 嘗試對 A 發起」：拒絕，回 `error { code: 'target-busy' }`
 - 「申請建立後 A 嘗試 pick:bench」：拒絕，回 `error { code: 'has-pending-trade' }`
+- 「B（接收方）嘗試 `trade:cancel`」：拒絕，回 `error { code: 'not-trade-owner' }`
+- 「無 pendingTrade 時送 `trade:cancel`」：回 `error { code: 'no-pending-trade' }`
 - 申請建立的瞬間 snapshot 雙方 `currentChampion`；解析時雙方持有的英雄與 snapshot 一致才能成立（防超詭異邊界）
 
 ### 5.6 新增介面
 
 繼承 proposal §5.2 的 `trade:request` / `trade:respond` / `trade:incoming` / `trade:resolved`；額外：
 
-| 方向 | 事件            | Payload          | 說明                       |
-| ---- | --------------- | ---------------- | -------------------------- |
-| S→C  | `trade:pending` | `{ tradeId }`    | 對發起方確認申請已建立     |
+| 方向 | 事件            | Payload                                                  | 說明                                          |
+| ---- | --------------- | -------------------------------------------------------- | --------------------------------------------- |
+| S→C  | `trade:pending` | `{ tradeId }`                                            | 對發起方確認申請已建立                        |
+| C→S  | `trade:cancel`  | `{ tradeId }`                                            | 發起方主動取消（只有 `fromUserId` 可呼叫）    |
+| S→C  | `trade:resolved`| `{ tradeId, accepted, reason?: 'cancelled' \| 'timeout' }` | 增補 `reason` 供前端區分拒絕 / 取消 / 超時    |
 
 **廣播範圍**：
 
@@ -604,9 +614,10 @@ interface Champion {
 | C→S  | `pick:bench`          | `{ championId }`                                           | Draft Engine |
 | C→S  | `trade:request`       | `{ targetUserId, offerChampionId, wantChampionId }`        | Trade        |
 | C→S  | `trade:respond`       | `{ tradeId, accept }`                                      | Trade        |
+| C→S  | `trade:cancel`        | `{ tradeId }`                                              | Trade        |
 | S→C  | `trade:incoming`      | `TradeRequest`                                             | Trade        |
 | S→C  | `trade:pending`       | `{ tradeId }`                                              | Trade        |
-| S→C  | `trade:resolved`      | `{ tradeId, accepted }`                                    | Trade        |
+| S→C  | `trade:resolved`      | `{ tradeId, accepted, reason?: 'cancelled' \| 'timeout' }` | Trade        |
 | S→C  | `room:result`         | `DraftResult[]`                                            | Draft Engine |
 | S→C  | `room:aborted`        | `{ reason }`                                               | Realtime     |
 | S→C  | `player:disconnected` | `{ userId }`                                               | Realtime     |
