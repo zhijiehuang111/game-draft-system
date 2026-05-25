@@ -21,6 +21,6 @@ app.use('/champions', championsRouter);
 createRealtime(httpServer);
 
 const port = Number(process.env.PORT ?? 3000);
-httpServer.listen(port, () => {
-  console.log(`server listening on http://localhost:${port}`);
+httpServer.listen(port, '127.0.0.1', () => {
+  console.log(`server listening on http://127.0.0.1:${port}`);
 });

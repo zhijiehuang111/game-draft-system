@@ -14,6 +14,7 @@
 - [x] [模組 5：Trade](./05-trade.md) — 1v1 交換 / 原子互換 / 限制
 - [x] [模組 6：Realtime / Reconnect](./06-realtime-reconnect.md) — socket registry / 15s grace / 作廢
 - [x] [模組 7：Frontend Shell](./07-frontend-shell.md) — 條件渲染 / Zustand slice / 時鐘校正
+- [ ] [模組 8：部署到 VPS](./08-deploy.md) — nginx + pm2 / docker-compose / HTTPS / WebSocket proxy
 
 ## 建議執行順序
 
