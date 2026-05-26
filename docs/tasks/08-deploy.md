@@ -1,7 +1,5 @@
 # 模組 8：部署到 VPS
 
-> 上游：[`docs/deployment.md`](../deployment.md)（playground 部署紀錄）
->
 > VPS 已完成基礎設定（user / SSH / ufw / fail2ban / fnm / pnpm / Docker / PM2 / Nginx / Cloudflare DNS / Let's Encrypt）。
 > 本模組只列 **game-draft-system 特有** 的步驟，共用基礎設施不重複。
 
@@ -31,7 +29,7 @@
 
 ## B. VPS 上拉 code 與安裝
 
-- [ ] **B1. pull 最新 code**
+- [x] **B1. pull 最新 code**
   ```bash
   cd ~/game-draft-system   # 或你選的目錄名
   git pull
@@ -42,7 +40,7 @@
   cd game-draft-system
   ```
 
-- [ ] **B2. 安裝依賴**
+- [x] **B2. 安裝依賴**
   ```bash
   pnpm install
   ```
@@ -51,7 +49,7 @@
 
 ## C. 環境變數
 
-- [ ] **C1. 建立 `.env`，改掉不安全的預設值**
+- [x] **C1. 建立 `.env`，改掉不安全的預設值**
   ```bash
   cp .env.example .env
   chmod 600 .env
@@ -68,13 +66,13 @@
 
 ## D. Docker + Migration
 
-- [ ] **D1. 啟動 Postgres**
+- [x] **D1. 啟動 Postgres**
   ```bash
   docker compose up -d
   docker compose ps   # 確認 running
   ```
 
-- [ ] **D2. 跑 migration**
+- [x] **D2. 跑 migration**
   ```bash
   set -a; source .env; set +a
   docker compose exec -T postgres \
@@ -92,7 +90,7 @@
 
 ## E. Build
 
-- [ ] **E1. build 全部 workspace**
+- [x] **E1. build 全部 workspace**
   ```bash
   pnpm build
   ```
@@ -106,7 +104,7 @@
 
 ## F. PM2 啟動 server
 
-- [ ] **F1. 啟動**
+- [x] **F1. 啟動**
   ```bash
   pm2 start ecosystem.config.cjs
   ```
@@ -117,7 +115,7 @@
   curl http://127.0.0.1:3000/health    # {"ok":true}
   ```
 
-- [ ] **F2. save + startup**
+- [x] **F2. save + startup**
   ```bash
   pm2 save
   # 如果之前沒跑過 pm2 startup（已跑過就跳過）：
@@ -129,7 +127,7 @@
 
 ## G. Nginx 設定
 
-- [ ] **G1. 寫 site config**
+- [x] **G1. 寫 site config**
 
   跟 playground 的差異：
   1. 路徑從 `apps/web/dist` → `apps/client/dist`
@@ -190,14 +188,14 @@
   - `Upgrade $http_upgrade` — 把 client 的 `Upgrade: websocket` header 轉給後端
   - `Connection "upgrade"` — 告訴後端這是 upgrade 請求
 
-- [ ] **G2. 啟用 + reload**
+- [x] **G2. 啟用 + reload**
   ```bash
   sudo ln -s /etc/nginx/sites-available/game-draft /etc/nginx/sites-enabled/
   sudo nginx -t
   sudo systemctl reload nginx
   ```
 
-- [ ] **G3. certbot HTTPS**
+- [x] **G3. certbot HTTPS**
   ```bash
   sudo certbot --nginx
   ```
@@ -207,25 +205,25 @@
 
 ## H. 驗證
 
-- [ ] **H1. HTTP → HTTPS redirect**
+- [x] **H1. HTTP → HTTPS redirect**
   ```bash
   curl -I http://your-domain.com/       # 301 → https
   ```
 
-- [ ] **H2. 靜態頁面**
+- [x] **H2. 靜態頁面**
   ```bash
   curl -I https://your-domain.com/      # 200, text/html
   ```
 
-- [ ] **H3. API**
+- [x] **H3. API**
   ```bash
   curl https://your-domain.com/api/health   # {"ok":true}
   ```
 
-- [ ] **H4. WebSocket**
+- [x] **H4. WebSocket**
   - 瀏覽器打開 → 登入 → 加入佇列 → 確認 socket 連線建立（DevTools → Network → WS tab）
 
-- [ ] **H5. Reboot 驗收**
+- [x] **H5. Reboot 驗收**
   ```bash
   sudo reboot
   # 等 30 秒 ssh 回來
@@ -238,6 +236,6 @@
 
 ## I. 後續可選
 
-- [ ] Cloudflare 橘雲（CDN + DDoS 保護）
+- [x] Cloudflare 橘雲（CDN + DDoS 保護）
 - [ ] 部署腳本（`scripts/deploy.sh`：git pull + pnpm install + build + pm2 reload）
 - [ ] GitHub Actions CI/CD
