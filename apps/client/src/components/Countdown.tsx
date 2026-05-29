@@ -1,19 +1,22 @@
-import { useEffect, useState } from 'react';
-import { useAppStore } from '../stores/index.js';
+import { useEffect, useState } from "react";
+import { useAppStore } from "../stores/index.js";
 
 interface Props {
   phaseEndsAt: number;
   className?: string;
 }
 
-export function Countdown({ phaseEndsAt, className = '' }: Props) {
+export function Countdown({ phaseEndsAt, className = "" }: Props) {
   const offset = useAppStore((s) => s.serverOffsetMs);
-  const compute = () => Math.ceil(Math.max(0, phaseEndsAt - (Date.now() + offset)) / 1000);
+  const compute = () =>
+    Math.ceil(Math.max(0, phaseEndsAt - (Date.now() + offset)) / 1000);
   const [seconds, setSeconds] = useState(compute);
 
   useEffect(() => {
     const tick = () => {
-      const next = Math.ceil(Math.max(0, phaseEndsAt - (Date.now() + offset)) / 1000);
+      const next = Math.ceil(
+        Math.max(0, phaseEndsAt - (Date.now() + offset)) / 1000,
+      );
       setSeconds((prev) => (prev === next ? prev : next));
     };
     tick();

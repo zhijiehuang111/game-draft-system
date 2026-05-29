@@ -1,10 +1,10 @@
-import { logout as logoutApi } from '../api/auth.js';
-import { AngledPanel } from '../components/AngledPanel.js';
-import { Button } from '../components/Button.js';
-import { CircleFrame } from '../components/CircleFrame.js';
-import { Ornament } from '../components/Ornament.js';
-import { disconnectSocket } from '../socket/setup.js';
-import { useAppStore } from '../stores/index.js';
+import { logout as logoutApi } from "../api/auth.js";
+import { AngledPanel } from "../components/AngledPanel.js";
+import { Button } from "../components/Button.js";
+import { CircleFrame } from "../components/CircleFrame.js";
+import { Ornament } from "../components/Ornament.js";
+import { disconnectSocket } from "../socket/setup.js";
+import { useAppStore } from "../stores/index.js";
 
 const PARTY_SIZE = 4;
 
@@ -19,13 +19,13 @@ export function LobbyScreen() {
 
   function handleJoin() {
     if (!socket) return;
-    socket.emit('queue:join');
+    socket.emit("queue:join");
     setQueue({ size: queueSize, inQueue: true });
   }
 
   function handleLeave() {
     if (!socket) return;
-    socket.emit('queue:leave');
+    socket.emit("queue:leave");
     setQueue({ size: queueSize, inQueue: false });
   }
 
@@ -47,7 +47,7 @@ export function LobbyScreen() {
         style={{
           backgroundImage:
             "radial-gradient(circle at 20% 30%, #0AC8B9 0%, transparent 35%), radial-gradient(circle at 80% 70%, #C8AA6E 0%, transparent 35%)",
-          mixBlendMode: 'screen',
+          mixBlendMode: "screen",
         }}
       />
 
@@ -56,10 +56,10 @@ export function LobbyScreen() {
         <div className="flex items-center gap-3">
           <div
             className="w-2 h-2 rotate-45"
-            style={{ background: socketConnected ? '#0AC8B9' : '#C8404B' }}
+            style={{ background: socketConnected ? "#0AC8B9" : "#C8404B" }}
           />
           <span className="h-label">
-            {socketConnected ? 'Connected' : 'Connecting…'}
+            {socketConnected ? "Connected" : "Connecting…"}
           </span>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -74,21 +74,24 @@ export function LobbyScreen() {
           <div className="relative">
             <div
               className="absolute -inset-6 rounded-full opacity-50 blur-2xl"
-              style={{ background: 'radial-gradient(circle, #C8AA6E 0%, transparent 70%)' }}
+              style={{
+                background:
+                  "radial-gradient(circle, #C8AA6E 0%, transparent 70%)",
+              }}
             />
             <CircleFrame size={156} tone="gold" ring={3} glow>
               <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
                   background:
-                    'radial-gradient(circle at 50% 30%, #2A3658 0%, #0A1428 70%)',
+                    "radial-gradient(circle at 50% 30%, #2A3658 0%, #0A1428 70%)",
                 }}
               >
                 <span
                   className="h-display text-[40px] text-gold-light"
-                  style={{ letterSpacing: '0.05em' }}
+                  style={{ letterSpacing: "0.05em" }}
                 >
-                  {user?.username?.[0]?.toUpperCase() ?? '?'}
+                  {user?.username?.[0]?.toUpperCase() ?? "?"}
                 </span>
               </div>
             </CircleFrame>
@@ -98,9 +101,9 @@ export function LobbyScreen() {
             <Ornament width={260} />
             <div
               className="h-display text-[22px] mt-1"
-              style={{ color: '#F0E6D2', letterSpacing: '0.35em' }}
+              style={{ color: "#F0E6D2", letterSpacing: "0.35em" }}
             >
-              {user?.username ?? '—'}
+              {user?.username ?? "—"}
             </div>
             <Ornament width={260} flip />
           </div>
@@ -125,19 +128,21 @@ export function LobbyScreen() {
                     <div
                       key={i}
                       className="relative"
-                      style={{ animation: `fade-up 0.4s ease-out ${i * 90}ms both` }}
+                      style={{
+                        animation: `fade-up 0.4s ease-out ${i * 90}ms both`,
+                      }}
                     >
                       <CircleFrame
                         size={34}
-                        tone={isFilled ? 'gold' : 'dim'}
+                        tone={isFilled ? "gold" : "dim"}
                         glow={isFilled}
                       >
                         <div
                           className="w-full h-full flex items-center justify-center"
                           style={{
                             background: isFilled
-                              ? 'radial-gradient(circle, #2A3658, #0A1428)'
-                              : 'transparent',
+                              ? "radial-gradient(circle, #2A3658, #0A1428)"
+                              : "transparent",
                           }}
                         >
                           {isFilled && i === 0 && (
@@ -166,7 +171,12 @@ export function LobbyScreen() {
           {/* CTA */}
           <div className="w-full flex justify-center pt-2">
             {inQueue ? (
-              <Button variant="danger" size="xl" onClick={handleLeave} className="w-full max-w-xs">
+              <Button
+                variant="danger"
+                size="xl"
+                onClick={handleLeave}
+                className="w-full max-w-xs"
+              >
                 Cancel Search
               </Button>
             ) : (
@@ -181,7 +191,6 @@ export function LobbyScreen() {
               </Button>
             )}
           </div>
-
         </div>
       </main>
     </div>

@@ -1,25 +1,28 @@
-import { credentialsSchema } from '@app/shared';
-import { useState } from 'react';
-import { login, register } from '../api/auth.js';
-import { ApiRequestError } from '../api/http.js';
-import { AngledPanel } from '../components/AngledPanel.js';
-import { Button } from '../components/Button.js';
-import { Ornament } from '../components/Ornament.js';
-import { useAppStore } from '../stores/index.js';
+import { credentialsSchema } from "@app/shared";
+import { useState } from "react";
+import { login, register } from "../api/auth.js";
+import { ApiRequestError } from "../api/http.js";
+import { AngledPanel } from "../components/AngledPanel.js";
+import { Button } from "../components/Button.js";
+import { Ornament } from "../components/Ornament.js";
+import { useAppStore } from "../stores/index.js";
 
-type Mode = 'login' | 'register';
+type Mode = "login" | "register";
 
 export function AuthScreen() {
-  const [mode, setMode] = useState<Mode>('login');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
+  const [mode, setMode] = useState<Mode>("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    username?: string;
+    password?: string;
+  }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const setUser = useAppStore((s) => s.setUser);
 
   function toggleMode() {
-    setMode((m) => (m === 'login' ? 'register' : 'login'));
+    setMode((m) => (m === "login" ? "register" : "login"));
     setFieldErrors({});
     setFormError(null);
   }
@@ -32,7 +35,7 @@ export function AuthScreen() {
       const next: typeof fieldErrors = {};
       for (const issue of parsed.error.issues) {
         const key = issue.path[0];
-        if (key === 'username' || key === 'password') {
+        if (key === "username" || key === "password") {
           next[key] = issue.message;
         }
       }
@@ -42,14 +45,14 @@ export function AuthScreen() {
     setFieldErrors({});
     setSubmitting(true);
     try {
-      const fn = mode === 'login' ? login : register;
+      const fn = mode === "login" ? login : register;
       const { user } = await fn(parsed.data);
       setUser(user);
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setFormError(err.error.message);
       } else {
-        setFormError('Network error. Please try again.');
+        setFormError("Network error. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -64,12 +67,12 @@ export function AuthScreen() {
           <div
             className="h-display"
             style={{
-              color: '#F0E6D2',
-              letterSpacing: '0.36em',
+              color: "#F0E6D2",
+              letterSpacing: "0.36em",
               fontSize: 20,
             }}
           >
-            {mode === 'login' ? 'SIGN IN' : 'REGISTER'}
+            {mode === "login" ? "SIGN IN" : "REGISTER"}
           </div>
           <Ornament width={280} flip />
         </div>
@@ -107,7 +110,9 @@ export function AuthScreen() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
                 disabled={submitting}
                 className="lol-input w-full"
               />
@@ -122,16 +127,25 @@ export function AuthScreen() {
               <div
                 className="text-[12px] text-crimson tracking-[0.06em] px-3 py-2"
                 style={{
-                  background: 'rgba(200, 64, 75,0.08)',
-                  borderLeft: '2px solid #C8404B',
+                  background: "rgba(200, 64, 75,0.08)",
+                  borderLeft: "2px solid #C8404B",
                 }}
               >
                 {formError}
               </div>
             )}
 
-            <Button type="submit" variant="primary" size="lg" disabled={submitting}>
-              {submitting ? '...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={submitting}
+            >
+              {submitting
+                ? "..."
+                : mode === "login"
+                  ? "Sign In"
+                  : "Create Account"}
             </Button>
 
             <button
@@ -140,7 +154,9 @@ export function AuthScreen() {
               disabled={submitting}
               className="h-label text-stone hover:text-gold-light transition-colors"
             >
-              {mode === 'login' ? 'No account? Register' : 'Have an account? Sign in'}
+              {mode === "login"
+                ? "No account? Register"
+                : "Have an account? Sign in"}
             </button>
           </form>
         </AngledPanel>

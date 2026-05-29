@@ -9,12 +9,14 @@
 ## 子任務
 
 ### 後端資料結構
+
 - [x] `apps/server/src/trade/types.ts`：`TradeRequest { id, fromUserId, toUserId, offerChampionId, wantChampionId, createdAt, expiresAt }`
 - [x] Room 內持有 `pendingTrades: Map<tradeId, TradeRequest>`（一房可同時 >1 筆，例如 A↔B、C↔D 並存）
 - [x] 鎖在 user 層級：每個 userId 最多涉入 1 筆 pending（不分發起 / 接收）；建議用 `lockedUsers: Map<userId, tradeId>` 反查
 - [x] 提供 `hasPendingTrade(userId)` 給 Draft Engine 查詢
 
 ### `trade:request` 處理
+
 - [x] 驗證：
   - [x] phase === 'bench-trade'
   - [x] fromUserId !== targetUserId
@@ -26,6 +28,7 @@
 - [x] emit `trade:incoming` 給 target、`trade:pending` 給 from
 
 ### `trade:respond` 處理
+
 - [x] 驗證：tradeId 對應某筆 pendingTrade、回應者是該筆的 toUserId
 - [x] accept=true：
   - [x] re-check：from / to 仍持有 snapshot 的英雄（否則 resolved=false）
@@ -37,6 +40,7 @@
 - [x] 清該筆 timer、從 `pendingTrades` 移除、解鎖該筆涉及的 from / to
 
 ### `trade:cancel` 處理（發起方主動取消）
+
 - [x] 驗證：
   - [x] tradeId 對應某筆 pendingTrade
   - [x] 呼叫者是該筆的 `fromUserId`（只有發起方能取消；接收方要拒絕請走 `trade:respond { accept: false }`）
@@ -47,10 +51,12 @@
 - [x] 失敗回 `error { code: 'no-pending-trade' | 'not-trade-owner' }`
 
 ### 超時處理
+
 - [x] 每筆獨立 `setTimeout(10_000)` → 等同收到 `trade:respond { accept: false }`（reason: 'timeout'）
 - [x] 房間進入 lock-in / aborted 時清掉所有 pendingTrades 與 timers
 
 ### 前端
+
 - [x] `pendingTradeOutgoing` / `pendingTradeIncoming` 兩個 slice 欄位
 - [x] socket handler：
   - [x] `trade:incoming` → 設 pendingTradeIncoming
@@ -62,6 +68,7 @@
 - [x] 在等待回應狀態下，UI 禁用自己再次發起 trade / 點板凳（取消按鈕除外）
 
 ### 驗證
+
 - [x] A 對 B 發起 → B 接受 → 英雄互換 + 全房畫面更新
 - [x] A 對 B 發起 → B 拒絕 → 雙方狀態解鎖
 - [x] A 對 B 發起 → 10s 不回應 → 自動視為拒絕

@@ -1,4 +1,4 @@
-import type { DraftRoom } from './Room.js';
+import type { DraftRoom } from "./Room.js";
 
 export class RoomRegistry {
   private byId = new Map<string, DraftRoom>();

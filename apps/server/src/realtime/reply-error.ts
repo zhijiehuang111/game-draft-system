@@ -1,5 +1,9 @@
-import type { Socket } from 'socket.io';
+import type { Socket } from "socket.io";
 
-export function replyError(socket: Socket, code: string, message: string): void {
-  socket.emit('error', { code, message });
+export function replyError(
+  socket: Socket,
+  code: string,
+  message: string,
+): void {
+  socket.emit("error", { code, message });
 }

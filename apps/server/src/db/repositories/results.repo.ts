@@ -1,5 +1,5 @@
-import type { DraftResult } from '@app/shared';
-import type { Db } from './types.js';
+import type { DraftResult } from "@app/shared";
+import type { Db } from "./types.js";
 
 interface DraftResultRow {
   room_id: string;
@@ -36,7 +36,7 @@ export async function insertResults(
   });
   const { rows } = await db.query<DraftResultRow>(
     `INSERT INTO draft_results (room_id, user_id, final_champion_id)
-     VALUES ${values.join(', ')}
+     VALUES ${values.join(", ")}
      RETURNING room_id, user_id, final_champion_id, completed_at`,
     params,
   );

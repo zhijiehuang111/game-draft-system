@@ -1,5 +1,5 @@
-import type { User } from '@app/shared';
-import type { Db } from './types.js';
+import type { User } from "@app/shared";
+import type { Db } from "./types.js";
 
 interface UserRow {
   id: string;
@@ -31,7 +31,10 @@ export async function createUser(
   return mapUser(rows[0]);
 }
 
-export async function findByUsername(db: Db, username: string): Promise<User | null> {
+export async function findByUsername(
+  db: Db,
+  username: string,
+): Promise<User | null> {
   const { rows } = await db.query<UserRow>(
     `SELECT id, username, password_hash, created_at
      FROM users WHERE username = $1`,

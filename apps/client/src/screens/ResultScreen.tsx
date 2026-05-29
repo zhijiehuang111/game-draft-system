@@ -1,8 +1,8 @@
-import { AngledPanel } from '../components/AngledPanel.js';
-import { Button } from '../components/Button.js';
-import { ChampionAvatar } from '../components/ChampionAvatar.js';
-import { Ornament } from '../components/Ornament.js';
-import { useAppStore } from '../stores/index.js';
+import { AngledPanel } from "../components/AngledPanel.js";
+import { Button } from "../components/Button.js";
+import { ChampionAvatar } from "../components/ChampionAvatar.js";
+import { Ornament } from "../components/Ornament.js";
+import { useAppStore } from "../stores/index.js";
 
 export function ResultScreen() {
   const results = useAppStore((s) => s.draftResult);
@@ -21,7 +21,7 @@ export function ResultScreen() {
           <Ornament width={280} />
           <div
             className="h-display text-[18px]"
-            style={{ color: '#F0E6D2', letterSpacing: '0.36em' }}
+            style={{ color: "#F0E6D2", letterSpacing: "0.36em" }}
           >
             DRAFT COMPLETE
           </div>
@@ -46,9 +46,7 @@ export function ResultScreen() {
                     tone="gold"
                     glow
                   />
-                  <div className="h-label numeric">
-                    {r.userId.slice(0, 8)}
-                  </div>
+                  <div className="h-label numeric">{r.userId.slice(0, 8)}</div>
                 </div>
               </AngledPanel>
             </div>

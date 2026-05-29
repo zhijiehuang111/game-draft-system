@@ -1,12 +1,12 @@
-import { useAppStore } from '../stores/index.js';
-import { CircleFrame } from './CircleFrame.js';
+import { useAppStore } from "../stores/index.js";
+import { CircleFrame } from "./CircleFrame.js";
 
 interface Props {
   championId: string;
   size?: number;
   showName?: boolean;
   className?: string;
-  tone?: 'gold' | 'hex' | 'dim';
+  tone?: "gold" | "hex" | "dim";
   glow?: boolean;
   ring?: number;
 }
@@ -15,8 +15,8 @@ export function ChampionAvatar({
   championId,
   size = 64,
   showName = true,
-  className = '',
-  tone = 'gold',
+  className = "",
+  tone = "gold",
   glow = false,
   ring = 2,
 }: Props) {

@@ -1,42 +1,42 @@
-import { io as ioClient } from 'socket.io-client';
-import { showToast } from '../components/Toast.js';
-import { useAppStore, type AppStore } from '../stores/index.js';
-import type { AppSocket } from '../stores/socketSlice.js';
+import { io as ioClient } from "socket.io-client";
+import { showToast } from "../components/Toast.js";
+import { useAppStore, type AppStore } from "../stores/index.js";
+import type { AppSocket } from "../stores/socketSlice.js";
 
 export function connectSocket(): AppSocket {
   const existing = useAppStore.getState().socket;
   if (existing) return existing;
 
   const socket: AppSocket = ioClient({
-    path: '/socket.io',
+    path: "/socket.io",
     withCredentials: true,
   });
 
-  socket.on('connect', () => {
+  socket.on("connect", () => {
     useAppStore.setState({ socketConnected: true });
     // Re-join room on reconnect if we still have one in state
     const current = useAppStore.getState().currentRoom;
-    if (current) socket.emit('room:join', { roomId: current.roomId });
+    if (current) socket.emit("room:join", { roomId: current.roomId });
   });
-  socket.on('disconnect', () => {
+  socket.on("disconnect", () => {
     useAppStore.setState({ socketConnected: false });
   });
-  socket.on('connect_error', (err) => {
-    console.error('socket connect_error', err.message);
+  socket.on("connect_error", (err) => {
+    console.error("socket connect_error", err.message);
   });
 
-  socket.on('queue:update', (payload) => {
+  socket.on("queue:update", (payload) => {
     const next: Partial<AppStore> = { queueSize: payload.size };
     if (payload.position !== undefined) next.inQueue = true;
     useAppStore.setState(next);
   });
 
-  socket.on('room:start', (payload) => {
+  socket.on("room:start", (payload) => {
     useAppStore.setState({
       inQueue: false,
       currentRoom: {
         roomId: payload.roomId,
-        phase: 'initial-pick',
+        phase: "initial-pick",
         phaseEndsAt: 0,
         serverNow: Date.now(),
         players: [],
@@ -45,27 +45,27 @@ export function connectSocket(): AppSocket {
         disconnected: {},
       },
     });
-    socket.emit('room:join', { roomId: payload.roomId });
+    socket.emit("room:join", { roomId: payload.roomId });
   });
 
-  socket.on('room:state', (payload) => {
+  socket.on("room:state", (payload) => {
     useAppStore.getState().setRoomState(payload);
   });
 
-  socket.on('room:phase', (payload) => {
+  socket.on("room:phase", (payload) => {
     const apply = useAppStore.getState().applyPhaseChange;
     apply(payload);
   });
 
-  socket.on('trade:incoming', (payload) => {
+  socket.on("trade:incoming", (payload) => {
     useAppStore.setState({ pendingTradeIncoming: payload });
   });
 
-  socket.on('trade:pending', (payload) => {
+  socket.on("trade:pending", (payload) => {
     useAppStore.setState({ pendingTradeOutgoing: payload });
   });
 
-  socket.on('trade:resolved', (payload) => {
+  socket.on("trade:resolved", (payload) => {
     const myUserId = useAppStore.getState().user?.id;
     const iWasSender = myUserId === payload.fromUserId;
     const iWasReceiver = myUserId === payload.toUserId;
@@ -76,20 +76,20 @@ export function connectSocket(): AppSocket {
     if (Object.keys(update).length > 0) useAppStore.setState(update);
 
     if (payload.accepted) return;
-    if (payload.reason === 'cancelled' && iWasReceiver) {
-      showToast('Partner cancelled the trade', 'info');
-    } else if (payload.reason === 'timeout' && iWasSender) {
-      showToast('Trade timed out', 'error');
+    if (payload.reason === "cancelled" && iWasReceiver) {
+      showToast("Partner cancelled the trade", "info");
+    } else if (payload.reason === "timeout" && iWasSender) {
+      showToast("Trade timed out", "error");
     } else if (!payload.reason && iWasSender) {
-      showToast('Trade declined', 'error');
+      showToast("Trade declined", "error");
     }
   });
 
-  socket.on('room:result', (results) => {
+  socket.on("room:result", (results) => {
     useAppStore.setState({ draftResult: results });
   });
 
-  socket.on('room:aborted', (payload) => {
+  socket.on("room:aborted", (payload) => {
     const partial: Partial<AppStore> = {
       currentRoom: null,
       pendingTradeIncoming: null,
@@ -98,13 +98,13 @@ export function connectSocket(): AppSocket {
     };
     useAppStore.setState(partial);
     const message =
-      payload.reason === 'player-left'
-        ? 'Opponent offline, room closed'
+      payload.reason === "player-left"
+        ? "Opponent offline, room closed"
         : `Room closed (${payload.reason})`;
-    showToast(message, 'error');
+    showToast(message, "error");
   });
 
-  socket.on('player:disconnected', (payload) => {
+  socket.on("player:disconnected", (payload) => {
     const room = useAppStore.getState().currentRoom;
     if (!room) return;
     useAppStore.setState({
@@ -115,7 +115,7 @@ export function connectSocket(): AppSocket {
     });
   });
 
-  socket.on('player:reconnected', (payload) => {
+  socket.on("player:reconnected", (payload) => {
     const room = useAppStore.getState().currentRoom;
     if (!room) return;
     const next = { ...room.disconnected };
@@ -125,9 +125,9 @@ export function connectSocket(): AppSocket {
     });
   });
 
-  socket.on('error', (payload) => {
-    console.error('socket error', payload.code, payload.message);
-    if (payload.code === 'room-not-found' || payload.code === 'not-in-room') {
+  socket.on("error", (payload) => {
+    console.error("socket error", payload.code, payload.message);
+    if (payload.code === "room-not-found" || payload.code === "not-in-room") {
       const hadRoom = useAppStore.getState().currentRoom !== null;
       if (hadRoom) {
         useAppStore.setState({
@@ -136,19 +136,19 @@ export function connectSocket(): AppSocket {
           pendingTradeOutgoing: null,
           draftResult: null,
         });
-        showToast('Room closed', 'error');
+        showToast("Room closed", "error");
       }
       return;
     }
     const tradeErrors: Record<string, string> = {
-      'has-pending-trade': 'You already have a pending trade',
-      'target-busy': 'Target is already in a trade',
-      'no-pending-trade': 'Trade no longer pending',
-      'not-trade-owner': 'Only the requester can cancel',
-      'invalid-trade': 'Trade no longer valid',
+      "has-pending-trade": "You already have a pending trade",
+      "target-busy": "Target is already in a trade",
+      "no-pending-trade": "Trade no longer pending",
+      "not-trade-owner": "Only the requester can cancel",
+      "invalid-trade": "Trade no longer valid",
     };
     if (tradeErrors[payload.code]) {
-      showToast(tradeErrors[payload.code], 'error');
+      showToast(tradeErrors[payload.code], "error");
     }
   });
 

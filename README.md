@@ -4,20 +4,18 @@
 
 ## Demo
 
-
-
 <!-- TODO: GIF / 影片 -->
 
 ## Tech Stack
 
-| 層級 | 技術 |
-| --- | --- |
-| 語言 | TypeScript |
-| 前端 | React · Vite · Zustand · Tailwind CSS |
-| 後端 | Express · Socket\.IO |
-| 資料庫 | PostgreSQL |
-| 套件管理 | pnpm workspaces |
-| 部署 | VPS · Nginx · PM2 · Cloudflare DNS |
+| 層級     | 技術                                  |
+| -------- | ------------------------------------- |
+| 語言     | TypeScript                            |
+| 前端     | React · Vite · Zustand · Tailwind CSS |
+| 後端     | Express · Socket\.IO                  |
+| 資料庫   | PostgreSQL                            |
+| 套件管理 | pnpm workspaces                       |
+| 部署     | VPS · Nginx · PM2 · Cloudflare DNS    |
 
 ## Features
 

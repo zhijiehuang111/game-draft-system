@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { AllyRail } from '../components/AllyRail.js';
-import { AngledPanel } from '../components/AngledPanel.js';
-import { ChampionAvatar } from '../components/ChampionAvatar.js';
-import { CornerFrame, Ornament } from '../components/Ornament.js';
-import { PhaseHeader } from '../components/PhaseHeader.js';
-import { useAppStore } from '../stores/index.js';
+import { useState } from "react";
+import { AllyRail } from "../components/AllyRail.js";
+import { AngledPanel } from "../components/AngledPanel.js";
+import { ChampionAvatar } from "../components/ChampionAvatar.js";
+import { CornerFrame, Ornament } from "../components/Ornament.js";
+import { PhaseHeader } from "../components/PhaseHeader.js";
+import { useAppStore } from "../stores/index.js";
 
 export function InitialPickScreen() {
   const room = useAppStore((s) => s.currentRoom);
@@ -19,7 +19,7 @@ export function InitialPickScreen() {
 
   function pick(championId: string) {
     if (!socket || !me || me.currentChampion !== null) return;
-    socket.emit('pick:initial', { championId });
+    socket.emit("pick:initial", { championId });
   }
 
   const featureId = hovered ?? me.currentChampion ?? me.allocated[0];
@@ -58,7 +58,7 @@ export function InitialPickScreen() {
               const locked = me.currentChampion !== null;
               const disabled = locked && !picked;
               const champ = champions[id];
-              const tone = picked ? 'hex' : disabled ? 'inset' : 'gold';
+              const tone = picked ? "hex" : disabled ? "inset" : "gold";
               return (
                 <button
                   key={id}
@@ -68,15 +68,21 @@ export function InitialPickScreen() {
                   onMouseLeave={() => setHovered(null)}
                   disabled={disabled || picked}
                   className={`group relative transition-all duration-200 ${
-                    picked ? 'translate-y-[-2px]' : disabled ? 'opacity-30' : 'hover:translate-y-[-3px] cursor-pointer'
+                    picked
+                      ? "translate-y-[-2px]"
+                      : disabled
+                        ? "opacity-30"
+                        : "hover:translate-y-[-3px] cursor-pointer"
                   }`}
-                  style={{ animation: `fade-up 0.5s ease-out ${i * 120}ms both` }}
+                  style={{
+                    animation: `fade-up 0.5s ease-out ${i * 120}ms both`,
+                  }}
                 >
                   <AngledPanel
                     variant={tone}
                     borderWidth={picked ? 2 : 1}
                     inner="#010A13"
-                    className={picked ? 'glow-hex' : ''}
+                    className={picked ? "glow-hex" : ""}
                   >
                     <div className="relative aspect-[3/4] overflow-hidden">
                       {/* portrait stretched as splash */}
@@ -85,7 +91,11 @@ export function InitialPickScreen() {
                           src={champ.imageUrl}
                           alt={champ.name}
                           className="absolute inset-0 w-full h-full object-cover scale-110 group-hover:scale-[1.18] transition-transform duration-500"
-                          style={{ filter: picked ? 'saturate(1.15)' : 'saturate(0.95)' }}
+                          style={{
+                            filter: picked
+                              ? "saturate(1.15)"
+                              : "saturate(0.95)",
+                          }}
                           draggable={false}
                         />
                       ) : (
@@ -97,11 +107,15 @@ export function InitialPickScreen() {
                         className="absolute inset-0 pointer-events-none"
                         style={{
                           background:
-                            'linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.85) 100%)',
+                            "linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.85) 100%)",
                         }}
                       />
 
-                      <CornerFrame size={16} inset={8} color={picked ? '#0AC8B9' : '#C8AA6E'} />
+                      <CornerFrame
+                        size={16}
+                        inset={8}
+                        color={picked ? "#0AC8B9" : "#C8AA6E"}
+                      />
 
                       {/* name banner */}
                       <div className="absolute inset-x-0 bottom-0 px-4 pb-3 pt-6">
@@ -115,8 +129,8 @@ export function InitialPickScreen() {
                         <div
                           className="text-center h-display text-[15px]"
                           style={{
-                            color: picked ? '#0AC8B9' : '#F0E6D2',
-                            letterSpacing: '0.18em',
+                            color: picked ? "#0AC8B9" : "#F0E6D2",
+                            letterSpacing: "0.18em",
                           }}
                         >
                           {champ?.name ?? id}
@@ -127,12 +141,13 @@ export function InitialPickScreen() {
                         <div
                           className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.32em]"
                           style={{
-                            background: 'linear-gradient(180deg, #0AC8B9 0%, #005A82 100%)',
-                            color: '#010A13',
+                            background:
+                              "linear-gradient(180deg, #0AC8B9 0%, #005A82 100%)",
+                            color: "#010A13",
                             fontFamily: "'Cinzel', serif",
                             fontWeight: 700,
                             clipPath:
-                              'polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%)',
+                              "polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%)",
                           }}
                         >
                           Selected
@@ -144,7 +159,6 @@ export function InitialPickScreen() {
               );
             })}
           </div>
-
         </section>
 
         {/* ============== RIGHT — champion detail / composition ============== */}
@@ -175,7 +189,7 @@ export function InitialPickScreen() {
                   <div className="text-center">
                     <div
                       className="h-display text-[18px]"
-                      style={{ color: '#F0E6D2', letterSpacing: '0.22em' }}
+                      style={{ color: "#F0E6D2", letterSpacing: "0.22em" }}
                     >
                       {featureChamp.name}
                     </div>
@@ -194,7 +208,9 @@ export function InitialPickScreen() {
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-stone/70 text-[12px] tracking-[0.2em] text-center px-4">
-                  Hover a champion card<br />to view details
+                  Hover a champion card
+                  <br />
+                  to view details
                 </div>
               )}
 
@@ -203,7 +219,8 @@ export function InitialPickScreen() {
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-stone">Selected</span>
                   <span className="numeric text-gold">
-                    {room.players.filter((p) => p.currentChampion).length} / {room.players.length}
+                    {room.players.filter((p) => p.currentChampion).length} /{" "}
+                    {room.players.length}
                   </span>
                 </div>
               </div>
@@ -221,7 +238,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="h-label text-stone/80">{label}</span>
       <span
         className="text-[12px] text-parchment"
-        style={{ fontFamily: "'Marcellus', serif", letterSpacing: '0.1em' }}
+        style={{ fontFamily: "'Marcellus', serif", letterSpacing: "0.1em" }}
       >
         {value}
       </span>

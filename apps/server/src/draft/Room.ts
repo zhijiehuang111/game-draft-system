@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { insertResults } from "../db/repositories/results.repo.js";
 import type { AppIoServer } from "../realtime/io.js";
-import { TRADE_TTL_MS, type TradeRequest, type TradeResolvedReason } from "../trade/types.js";
+import {
+  TRADE_TTL_MS,
+  type TradeRequest,
+  type TradeResolvedReason,
+} from "../trade/types.js";
 import { allocateChampions, type Rng } from "./allocate.js";
 import type { DraftResult } from "@app/shared";
 import {
@@ -210,28 +214,57 @@ export class DraftRoom {
     | { ok: true; trade: TradeRequest }
     | { ok: false; code: string; message: string } {
     if (this.phase !== "bench-trade") {
-      return { ok: false, code: "wrong-phase", message: "not bench-trade phase" };
+      return {
+        ok: false,
+        code: "wrong-phase",
+        message: "not bench-trade phase",
+      };
     }
     if (fromUserId === targetUserId) {
-      return { ok: false, code: "self-trade", message: "cannot trade with self" };
+      return {
+        ok: false,
+        code: "self-trade",
+        message: "cannot trade with self",
+      };
     }
     const from = this.players.find((p) => p.userId === fromUserId);
-    if (!from) return { ok: false, code: "not-in-room", message: "user not in room" };
+    if (!from)
+      return { ok: false, code: "not-in-room", message: "user not in room" };
     const target = this.players.find((p) => p.userId === targetUserId);
     if (!target) {
-      return { ok: false, code: "target-not-in-room", message: "target not in room" };
+      return {
+        ok: false,
+        code: "target-not-in-room",
+        message: "target not in room",
+      };
     }
     if (from.currentChampion !== offerChampionId) {
-      return { ok: false, code: "offer-not-held", message: "offer champion not held" };
+      return {
+        ok: false,
+        code: "offer-not-held",
+        message: "offer champion not held",
+      };
     }
     if (target.currentChampion !== wantChampionId) {
-      return { ok: false, code: "want-not-held", message: "want champion not held by target" };
+      return {
+        ok: false,
+        code: "want-not-held",
+        message: "want champion not held by target",
+      };
     }
     if (this.hasPendingTrade(fromUserId)) {
-      return { ok: false, code: "has-pending-trade", message: "you already have a pending trade" };
+      return {
+        ok: false,
+        code: "has-pending-trade",
+        message: "you already have a pending trade",
+      };
     }
     if (this.hasPendingTrade(targetUserId)) {
-      return { ok: false, code: "target-busy", message: "target has a pending trade" };
+      return {
+        ok: false,
+        code: "target-busy",
+        message: "target has a pending trade",
+      };
     }
 
     const now = Date.now();
@@ -254,7 +287,9 @@ export class DraftRoom {
     }, TRADE_TTL_MS);
     this.tradeTimers.set(trade.tradeId, timer);
 
-    this.deps.io.to(`user:${targetUserId}`).emit("trade:incoming", { ...trade });
+    this.deps.io
+      .to(`user:${targetUserId}`)
+      .emit("trade:incoming", { ...trade });
     this.deps.io.to(`user:${fromUserId}`).emit("trade:pending", { ...trade });
     this.broadcastState();
     return { ok: true, trade };
@@ -267,10 +302,18 @@ export class DraftRoom {
   ): { ok: true } | { ok: false; code: string; message: string } {
     const trade = this.pendingTrades.get(tradeId);
     if (!trade) {
-      return { ok: false, code: "no-pending-trade", message: "trade not found" };
+      return {
+        ok: false,
+        code: "no-pending-trade",
+        message: "trade not found",
+      };
     }
     if (trade.toUserId !== userId) {
-      return { ok: false, code: "not-trade-target", message: "only the target can respond" };
+      return {
+        ok: false,
+        code: "not-trade-target",
+        message: "only the target can respond",
+      };
     }
     if (!accept) {
       this.resolveTrade(tradeId, { accepted: false });
@@ -300,14 +343,26 @@ export class DraftRoom {
     tradeId: string,
   ): { ok: true } | { ok: false; code: string; message: string } {
     if (this.phase !== "bench-trade") {
-      return { ok: false, code: "wrong-phase", message: "not bench-trade phase" };
+      return {
+        ok: false,
+        code: "wrong-phase",
+        message: "not bench-trade phase",
+      };
     }
     const trade = this.pendingTrades.get(tradeId);
     if (!trade) {
-      return { ok: false, code: "no-pending-trade", message: "trade not found" };
+      return {
+        ok: false,
+        code: "no-pending-trade",
+        message: "trade not found",
+      };
     }
     if (trade.fromUserId !== userId) {
-      return { ok: false, code: "not-trade-owner", message: "only the requester can cancel" };
+      return {
+        ok: false,
+        code: "not-trade-owner",
+        message: "only the requester can cancel",
+      };
     }
     this.resolveTrade(tradeId, { accepted: false, reason: "cancelled" });
     return { ok: true };
@@ -364,9 +419,7 @@ export class DraftRoom {
       this.checkStillGone(userId);
     }, DISCONNECT_GRACE_MS);
     this.disconnectTimers.set(userId, timer);
-    this.deps.io
-      .to(this.channel())
-      .emit("player:disconnected", { userId });
+    this.deps.io.to(this.channel()).emit("player:disconnected", { userId });
   }
 
   clearDisconnected(userId: string): void {
@@ -377,9 +430,7 @@ export class DraftRoom {
       clearTimeout(timer);
       this.disconnectTimers.delete(userId);
     }
-    this.deps.io
-      .to(this.channel())
-      .emit("player:reconnected", { userId });
+    this.deps.io.to(this.channel()).emit("player:reconnected", { userId });
   }
 
   abort(reason: string): void {

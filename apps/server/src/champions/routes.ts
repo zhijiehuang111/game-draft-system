@@ -1,8 +1,8 @@
-import { CHAMPIONS } from '@app/shared';
-import { Router } from 'express';
+import { CHAMPIONS } from "@app/shared";
+import { Router } from "express";
 
 export const championsRouter: Router = Router();
 
-championsRouter.get('/', (_req, res) => {
+championsRouter.get("/", (_req, res) => {
   res.json({ champions: CHAMPIONS });
 });

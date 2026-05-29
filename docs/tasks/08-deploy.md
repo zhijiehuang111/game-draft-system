@@ -30,11 +30,14 @@
 ## B. VPS 上拉 code 與安裝
 
 - [x] **B1. pull 最新 code**
+
   ```bash
   cd ~/game-draft-system   # 或你選的目錄名
   git pull
   ```
+
   如果是第一次 clone：
+
   ```bash
   git clone https://github.com/<user>/game-draft-system.git
   cd game-draft-system
@@ -67,6 +70,7 @@
 ## D. Docker + Migration
 
 - [x] **D1. 啟動 Postgres**
+
   ```bash
   docker compose up -d
   docker compose ps   # 確認 running
@@ -105,10 +109,13 @@
 ## F. PM2 啟動 server
 
 - [x] **F1. 啟動**
+
   ```bash
   pm2 start ecosystem.config.cjs
   ```
+
   驗證：
+
   ```bash
   pm2 ls                               # status = online, memory > 0
   pm2 logs server --lines 10 --nostream
@@ -135,6 +142,7 @@
   3. `/api/` proxy 一樣帶結尾 `/`（strip prefix），因為 server 路由不帶 `/api`
 
   `/etc/nginx/sites-available/game-draft`：
+
   ```nginx
   server {
       listen 80;
@@ -189,6 +197,7 @@
   - `Connection "upgrade"` — 告訴後端這是 upgrade 請求
 
 - [x] **G2. 啟用 + reload**
+
   ```bash
   sudo ln -s /etc/nginx/sites-available/game-draft /etc/nginx/sites-enabled/
   sudo nginx -t
@@ -206,16 +215,19 @@
 ## H. 驗證
 
 - [x] **H1. HTTP → HTTPS redirect**
+
   ```bash
   curl -I http://your-domain.com/       # 301 → https
   ```
 
 - [x] **H2. 靜態頁面**
+
   ```bash
   curl -I https://your-domain.com/      # 200, text/html
   ```
 
 - [x] **H3. API**
+
   ```bash
   curl https://your-domain.com/api/health   # {"ok":true}
   ```

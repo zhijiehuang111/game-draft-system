@@ -1,9 +1,9 @@
-import type { PlayerState, TradeRequest } from '@app/shared';
-import { useEffect, useState } from 'react';
-import { useAppStore } from '../stores/index.js';
-import { AngledPanel } from './AngledPanel.js';
-import { ChampionAvatar } from './ChampionAvatar.js';
-import { CircleFrame } from './CircleFrame.js';
+import type { PlayerState, TradeRequest } from "@app/shared";
+import { useEffect, useState } from "react";
+import { useAppStore } from "../stores/index.js";
+import { AngledPanel } from "./AngledPanel.js";
+import { ChampionAvatar } from "./ChampionAvatar.js";
+import { CircleFrame } from "./CircleFrame.js";
 
 interface TradeUi {
   /** True when I can initiate a new trade (bench-trade phase, I have a champion, no pending of mine). */
@@ -38,12 +38,16 @@ export function AllyRail({ players, meUserId, disconnected, trade }: Props) {
         const isMe = p.userId === meUserId;
         const offline = p.userId in disconnected;
         const hasPick = !!p.currentChampion;
-        const tone = offline ? 'dim' : isMe ? 'hex' : hasPick ? 'gold' : 'dim';
+        const tone = offline ? "dim" : isMe ? "hex" : hasPick ? "gold" : "dim";
 
         const outgoingForRow =
-          trade?.outgoing && trade.outgoing.toUserId === p.userId ? trade.outgoing : null;
+          trade?.outgoing && trade.outgoing.toUserId === p.userId
+            ? trade.outgoing
+            : null;
         const incomingForRow =
-          trade?.incoming && trade.incoming.fromUserId === p.userId ? trade.incoming : null;
+          trade?.incoming && trade.incoming.fromUserId === p.userId
+            ? trade.incoming
+            : null;
 
         const showTradeButton =
           !!trade &&
@@ -54,9 +58,7 @@ export function AllyRail({ players, meUserId, disconnected, trade }: Props) {
           !incomingForRow;
 
         const canPressTrade =
-          !!trade &&
-          trade.canStart &&
-          !trade.lockedUserIds.has(p.userId);
+          !!trade && trade.canStart && !trade.lockedUserIds.has(p.userId);
 
         return (
           <div
@@ -65,10 +67,10 @@ export function AllyRail({ players, meUserId, disconnected, trade }: Props) {
             style={{ animationDelay: `${i * 80}ms` }}
           >
             <div
-              className={`relative flex items-center gap-3 px-2 py-2 border-l-2 ${isMe ? 'bg-hex/5 border-hex' : hasPick ? 'border-gold' : 'border-bronze-dark'}`}
+              className={`relative flex items-center gap-3 px-2 py-2 border-l-2 ${isMe ? "bg-hex/5 border-hex" : hasPick ? "border-gold" : "border-bronze-dark"}`}
               style={{
                 opacity: offline ? 0.45 : 1,
-                filter: offline ? 'grayscale(0.8)' : undefined,
+                filter: offline ? "grayscale(0.8)" : undefined,
               }}
             >
               {/* portrait */}
@@ -104,7 +106,7 @@ export function AllyRail({ players, meUserId, disconnected, trade }: Props) {
 
               <div className="flex-1 min-w-0">
                 <div
-                  className={`font-label text-[13px] tracking-[0.08em] truncate ${isMe ? 'text-hex' : 'text-parchment'}`}
+                  className={`font-label text-[13px] tracking-[0.08em] truncate ${isMe ? "text-hex" : "text-parchment"}`}
                 >
                   {p.username}
                   {isMe && (
@@ -114,13 +116,9 @@ export function AllyRail({ players, meUserId, disconnected, trade }: Props) {
                   )}
                 </div>
                 <div
-                  className={`text-[11px] mt-0.5 truncate tracking-[0.06em] ${hasPick ? 'text-gold' : 'text-stone-dim'}`}
+                  className={`text-[11px] mt-0.5 truncate tracking-[0.06em] ${hasPick ? "text-gold" : "text-stone-dim"}`}
                 >
-                  {offline
-                    ? 'Offline'
-                    : hasPick
-                      ? 'Selected'
-                      : 'Picking…'}
+                  {offline ? "Offline" : hasPick ? "Selected" : "Picking…"}
                 </div>
               </div>
             </div>
@@ -158,13 +156,13 @@ function TradeIconButton({ disabled, onClick }: IconBtnProps) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      title={disabled ? 'Trade unavailable' : 'Request trade'}
-      className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center transition-transform ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-110 active:scale-95 cursor-pointer'}`}
+      title={disabled ? "Trade unavailable" : "Request trade"}
+      className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center transition-transform ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-110 active:scale-95 cursor-pointer"}`}
       style={{
         background:
-          'radial-gradient(circle at 30% 30%, #1E2328 0%, #010A13 75%)',
-        border: '1.5px solid #C8AA6E',
-        boxShadow: disabled ? 'none' : '0 0 8px rgba(200,170,110,0.45)',
+          "radial-gradient(circle at 30% 30%, #1E2328 0%, #010A13 75%)",
+        border: "1.5px solid #C8AA6E",
+        boxShadow: disabled ? "none" : "0 0 8px rgba(200,170,110,0.45)",
       }}
     >
       <SwapIcon />
@@ -191,24 +189,24 @@ interface BubbleBase {
 }
 
 type BubbleProps =
-  | (BubbleBase & { kind: 'outgoing'; onCancel(): void })
-  | (BubbleBase & { kind: 'incoming'; onAccept(): void; onDecline(): void });
+  | (BubbleBase & { kind: "outgoing"; onCancel(): void })
+  | (BubbleBase & { kind: "incoming"; onAccept(): void; onDecline(): void });
 
 function TradeBubble(props: BubbleProps) {
   const champions = useAppStore((s) => s.champions);
   const offset = useAppStore((s) => s.serverOffsetMs);
   const remaining = useRemainingSeconds(props.trade.expiresAt, offset);
-  const offerName = champions[props.trade.offerChampionId]?.name ?? '—';
-  const wantName = champions[props.trade.wantChampionId]?.name ?? '—';
-  const accent = props.kind === 'incoming' ? '#0AC8B9' : '#C8AA6E';
+  const offerName = champions[props.trade.offerChampionId]?.name ?? "—";
+  const wantName = champions[props.trade.wantChampionId]?.name ?? "—";
+  const accent = props.kind === "incoming" ? "#0AC8B9" : "#C8AA6E";
 
   return (
     <div
       className="absolute z-10 top-1/2 -translate-y-1/2 fade-up"
-      style={{ left: 'calc(100% + 12px)', width: 280 }}
+      style={{ left: "calc(100% + 12px)", width: 280 }}
     >
       <AngledPanel
-        variant={props.kind === 'incoming' ? 'hex' : 'gold'}
+        variant={props.kind === "incoming" ? "hex" : "gold"}
         notch={10}
         inner="linear-gradient(180deg, rgba(10,20,40,0.97) 0%, rgba(1,10,19,0.97) 100%)"
       >
@@ -218,7 +216,7 @@ function TradeBubble(props: BubbleProps) {
               className="text-[10px] tracking-[0.24em] uppercase"
               style={{ color: accent, fontFamily: "'Marcellus', serif" }}
             >
-              {props.kind === 'incoming' ? 'Trade Request' : 'Awaiting Reply'}
+              {props.kind === "incoming" ? "Trade Request" : "Awaiting Reply"}
             </span>
             <span
               className="numeric text-[11px] tabular-nums"
@@ -229,21 +227,21 @@ function TradeBubble(props: BubbleProps) {
           </div>
 
           <div className="text-[12px] text-parchment leading-snug tracking-[0.04em]">
-            {props.kind === 'incoming' ? (
+            {props.kind === "incoming" ? (
               <>
-                Offers <span className="text-gold">{offerName}</span> for your{' '}
+                Offers <span className="text-gold">{offerName}</span> for your{" "}
                 <span className="text-gold">{wantName}</span>
               </>
             ) : (
               <>
-                Offering <span className="text-gold">{offerName}</span> for{' '}
+                Offering <span className="text-gold">{offerName}</span> for{" "}
                 <span className="text-gold">{wantName}</span>
               </>
             )}
           </div>
 
           <div className="flex gap-2 mt-0.5">
-            {props.kind === 'incoming' ? (
+            {props.kind === "incoming" ? (
               <>
                 <BubbleButton variant="accept" onClick={props.onAccept}>
                   Accept
@@ -279,11 +277,11 @@ function BubbleButton({
   onClick,
   children,
 }: {
-  variant: 'accept' | 'decline';
+  variant: "accept" | "decline";
   onClick(): void;
   children: React.ReactNode;
 }) {
-  const isAccept = variant === 'accept';
+  const isAccept = variant === "accept";
   return (
     <button
       type="button"
@@ -292,11 +290,11 @@ function BubbleButton({
       style={{
         fontFamily: "'Marcellus', serif",
         background: isAccept
-          ? 'linear-gradient(180deg, rgba(10,200,185,0.18), rgba(10,200,185,0.04))'
-          : 'linear-gradient(180deg, rgba(120,90,40,0.25), rgba(70,55,20,0.05))',
-        border: `1px solid ${isAccept ? '#0AC8B9' : '#785A28'}`,
-        color: isAccept ? '#0AC8B9' : '#C8AA6E',
-        clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)',
+          ? "linear-gradient(180deg, rgba(10,200,185,0.18), rgba(10,200,185,0.04))"
+          : "linear-gradient(180deg, rgba(120,90,40,0.25), rgba(70,55,20,0.05))",
+        border: `1px solid ${isAccept ? "#0AC8B9" : "#785A28"}`,
+        color: isAccept ? "#0AC8B9" : "#C8AA6E",
+        clipPath: "polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)",
       }}
     >
       {children}
@@ -310,7 +308,9 @@ function useRemainingSeconds(expiresAt: number, offset: number): number {
   const [s, setS] = useState(compute);
   useEffect(() => {
     const tick = () => {
-      const next = Math.ceil(Math.max(0, expiresAt - (Date.now() + offset)) / 1000);
+      const next = Math.ceil(
+        Math.max(0, expiresAt - (Date.now() + offset)) / 1000,
+      );
       setS((prev) => (prev === next ? prev : next));
     };
     tick();

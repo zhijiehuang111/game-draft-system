@@ -1,9 +1,9 @@
-import { pool } from './pool.js';
-import { hashPassword } from '../auth/password.js';
-import { createUser, findByUsername } from './repositories/users.repo.js';
+import { pool } from "./pool.js";
+import { hashPassword } from "../auth/password.js";
+import { createUser, findByUsername } from "./repositories/users.repo.js";
 
-const PASSWORD = 'password';
-const USERNAMES = ['player1', 'player2', 'player3', 'player4'];
+const PASSWORD = "password";
+const USERNAMES = ["player1", "player2", "player3", "player4"];
 
 async function main() {
   const passwordHash = await hashPassword(PASSWORD);
@@ -18,12 +18,14 @@ async function main() {
     console.log(`✓ created ${username}`);
   }
 
-  console.log(`\n✅ seed done — login with any of [${USERNAMES.join(', ')}] / "${PASSWORD}"`);
+  console.log(
+    `\n✅ seed done — login with any of [${USERNAMES.join(", ")}] / "${PASSWORD}"`,
+  );
 }
 
 main()
   .catch((err) => {
-    console.error('\n❌ seed failed:', err);
+    console.error("\n❌ seed failed:", err);
     process.exit(1);
   })
   .finally(() => pool.end());

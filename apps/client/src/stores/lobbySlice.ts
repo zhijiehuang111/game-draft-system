@@ -1,5 +1,5 @@
-import type { StateCreator } from 'zustand';
-import type { AppStore } from './index.js';
+import type { StateCreator } from "zustand";
+import type { AppStore } from "./index.js";
 
 export interface LobbySlice {
   queueSize: number;
@@ -7,7 +7,9 @@ export interface LobbySlice {
   setQueue(state: { size: number; inQueue?: boolean }): void;
 }
 
-export const createLobbySlice: StateCreator<AppStore, [], [], LobbySlice> = (set) => ({
+export const createLobbySlice: StateCreator<AppStore, [], [], LobbySlice> = (
+  set,
+) => ({
   queueSize: 0,
   inQueue: false,
   setQueue: ({ size, inQueue }) =>

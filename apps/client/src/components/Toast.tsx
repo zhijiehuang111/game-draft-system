@@ -1,11 +1,20 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AngledPanel } from './AngledPanel.js';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { AngledPanel } from "./AngledPanel.js";
 
-type ToastKind = 'info' | 'error' | 'success';
+type ToastKind = "info" | "error" | "success";
 
 let externalShow: ((message: string, kind?: ToastKind) => void) | null = null;
 
-export function showToast(message: string, kind: ToastKind = 'info'): void {
+export function showToast(message: string, kind: ToastKind = "info"): void {
   externalShow?.(message, kind);
 }
 
@@ -21,17 +30,20 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-const TONE: Record<ToastKind, { variant: 'hex' | 'gold' | 'crimson'; accent: string }> = {
-  info:    { variant: 'hex',     accent: '#0AC8B9' },
-  success: { variant: 'gold',    accent: '#C8AA6E' },
-  error:   { variant: 'crimson', accent: '#C8404B' },
+const TONE: Record<
+  ToastKind,
+  { variant: "hex" | "gold" | "crimson"; accent: string }
+> = {
+  info: { variant: "hex", accent: "#0AC8B9" },
+  success: { variant: "gold", accent: "#C8AA6E" },
+  error: { variant: "crimson", accent: "#C8404B" },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const idRef = useRef(0);
 
-  const show = useCallback((message: string, kind: ToastKind = 'info') => {
+  const show = useCallback((message: string, kind: ToastKind = "info") => {
     const id = ++idRef.current;
     setItems((prev) => [...prev, { id, kind, message }]);
     setTimeout(() => {
@@ -77,6 +89,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }

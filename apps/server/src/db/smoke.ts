@@ -1,19 +1,19 @@
-import { randomUUID } from 'node:crypto';
-import { pool } from './pool.js';
-import { createUser } from './repositories/users.repo.js';
-import { insertResults } from './repositories/results.repo.js';
+import { randomUUID } from "node:crypto";
+import { pool } from "./pool.js";
+import { createUser } from "./repositories/users.repo.js";
+import { insertResults } from "./repositories/results.repo.js";
 
 async function main() {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const suffix = Date.now();
     const users = [];
     for (let i = 0; i < 4; i++) {
-      users.push(await createUser(client, `smoke_${suffix}_${i}`, 'fake-hash'));
+      users.push(await createUser(client, `smoke_${suffix}_${i}`, "fake-hash"));
     }
-    console.log('✓ created 4 users');
+    console.log("✓ created 4 users");
 
     const roomId = randomUUID();
     const results = await insertResults(
@@ -21,15 +21,16 @@ async function main() {
       roomId,
       users.map((u, i) => ({ userId: u.id, finalChampionId: `champ_${i}` })),
     );
-    if (results.length !== 4) throw new Error(`expected 4 results, got ${results.length}`);
-    console.log('✓ inserted 4 draft_results');
+    if (results.length !== 4)
+      throw new Error(`expected 4 results, got ${results.length}`);
+    console.log("✓ inserted 4 draft_results");
 
-    await client.query('ROLLBACK');
-    console.log('✓ rolled back — DB left clean');
+    await client.query("ROLLBACK");
+    console.log("✓ rolled back — DB left clean");
 
-    console.log('\n✅ smoke test passed');
+    console.log("\n✅ smoke test passed");
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
+    await client.query("ROLLBACK").catch(() => {});
     throw err;
   } finally {
     client.release();
@@ -38,7 +39,7 @@ async function main() {
 
 main()
   .catch((err) => {
-    console.error('\n❌ smoke test failed:', err);
+    console.error("\n❌ smoke test failed:", err);
     process.exit(1);
   })
   .finally(() => pool.end());

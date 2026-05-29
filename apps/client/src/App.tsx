@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
-import { getMe } from './api/auth.js';
-import { fetchChampions } from './api/champions.js';
-import { ApiRequestError } from './api/http.js';
-import { useToast } from './components/Toast.js';
-import { AuthScreen } from './screens/AuthScreen.js';
-import { LobbyScreen } from './screens/LobbyScreen.js';
-import { ResultScreen } from './screens/ResultScreen.js';
-import { RoomScreen } from './screens/RoomScreen.js';
-import { connectSocket } from './socket/setup.js';
-import { useAppStore } from './stores/index.js';
+import { useEffect } from "react";
+import { getMe } from "./api/auth.js";
+import { fetchChampions } from "./api/champions.js";
+import { ApiRequestError } from "./api/http.js";
+import { useToast } from "./components/Toast.js";
+import { AuthScreen } from "./screens/AuthScreen.js";
+import { LobbyScreen } from "./screens/LobbyScreen.js";
+import { ResultScreen } from "./screens/ResultScreen.js";
+import { RoomScreen } from "./screens/RoomScreen.js";
+import { connectSocket } from "./socket/setup.js";
+import { useAppStore } from "./stores/index.js";
 
 function App() {
   const status = useAppStore((s) => s.authStatus);
@@ -31,7 +31,7 @@ function App() {
         if (cancelled) return;
         setUser(null);
         if (!(err instanceof ApiRequestError && err.status === 401)) {
-          console.error('getMe failed', err);
+          console.error("getMe failed", err);
         }
       });
 
@@ -51,8 +51,8 @@ function App() {
         setChampions(list);
       })
       .catch((err) => {
-        console.error('fetchChampions failed', err);
-        toast.show('Failed to load champions', 'error');
+        console.error("fetchChampions failed", err);
+        toast.show("Failed to load champions", "error");
       });
 
     return () => {
@@ -60,7 +60,7 @@ function App() {
     };
   }, [user, setChampions, toast]);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-400">
         Loading…
@@ -70,7 +70,7 @@ function App() {
 
   if (!user) return <AuthScreen />;
   if (draftResult) return <ResultScreen />;
-  if (currentRoom && currentRoom.phase !== 'aborted') return <RoomScreen />;
+  if (currentRoom && currentRoom.phase !== "aborted") return <RoomScreen />;
   return <LobbyScreen />;
 }
 

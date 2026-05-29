@@ -1,15 +1,15 @@
-import type { Server as HttpServer } from 'node:http';
-import { Server } from 'socket.io';
+import type { Server as HttpServer } from "node:http";
+import { Server } from "socket.io";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
-} from '@app/shared';
-import { socketAuth } from '../auth/socket-middleware.js';
-import { createDraftEngine } from '../draft/engine.js';
-import { Matchmaker } from '../matchmaking/Matchmaker.js';
-import { RealtimeRegistry } from './RealtimeRegistry.js';
-import { replyError } from './reply-error.js';
+} from "@app/shared";
+import { socketAuth } from "../auth/socket-middleware.js";
+import { createDraftEngine } from "../draft/engine.js";
+import { Matchmaker } from "../matchmaking/Matchmaker.js";
+import { RealtimeRegistry } from "./RealtimeRegistry.js";
+import { replyError } from "./reply-error.js";
 
 export type AppIoServer = Server<
   ClientToServerEvents,
@@ -32,65 +32,68 @@ export function createRealtime(httpServer: HttpServer): Realtime {
 
   io.use(socketAuth);
 
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
     const { userId } = socket.data;
     registry.bind(userId, socket.id);
     socket.join(`user:${userId}`);
-    socket.emit('queue:update', { size: matchmaker.size() });
+    socket.emit("queue:update", { size: matchmaker.size() });
 
-    socket.on('queue:join', () => {
+    socket.on("queue:join", () => {
       matchmaker.join(userId, socket.id).catch((err) => {
-        console.error('[queue:join] error', err);
+        console.error("[queue:join] error", err);
       });
     });
 
-    socket.on('queue:leave', () => {
+    socket.on("queue:leave", () => {
       matchmaker.leave(userId);
     });
 
-    socket.on('room:join', ({ roomId }) => {
+    socket.on("room:join", ({ roomId }) => {
       const result = draftEngine.handleRoomJoin(userId, roomId);
       if (!result.ok) {
-        replyError(socket, result.code, 'cannot join room');
+        replyError(socket, result.code, "cannot join room");
         return;
       }
       socket.join(`room:${roomId}`);
       registry.setRoom(userId, roomId);
-      socket.emit('room:state', result.snapshot);
-      if (result.results) socket.emit('room:result', result.results);
+      socket.emit("room:state", result.snapshot);
+      if (result.results) socket.emit("room:result", result.results);
     });
 
-    socket.on('pick:initial', ({ championId }) => {
+    socket.on("pick:initial", ({ championId }) => {
       const result = draftEngine.handlePickInitial(userId, championId);
       if (!result.ok) replyError(socket, result.code, result.message);
     });
 
-    socket.on('pick:bench', ({ championId }) => {
+    socket.on("pick:bench", ({ championId }) => {
       const result = draftEngine.handlePickBench(userId, championId);
       if (!result.ok) replyError(socket, result.code, result.message);
     });
 
-    socket.on('trade:request', ({ targetUserId, offerChampionId, wantChampionId }) => {
-      const result = draftEngine.handleTradeRequest(
-        userId,
-        targetUserId,
-        offerChampionId,
-        wantChampionId,
-      );
-      if (!result.ok) replyError(socket, result.code, result.message);
-    });
+    socket.on(
+      "trade:request",
+      ({ targetUserId, offerChampionId, wantChampionId }) => {
+        const result = draftEngine.handleTradeRequest(
+          userId,
+          targetUserId,
+          offerChampionId,
+          wantChampionId,
+        );
+        if (!result.ok) replyError(socket, result.code, result.message);
+      },
+    );
 
-    socket.on('trade:respond', ({ tradeId, accept }) => {
+    socket.on("trade:respond", ({ tradeId, accept }) => {
       const result = draftEngine.handleTradeRespond(userId, tradeId, accept);
       if (!result.ok) replyError(socket, result.code, result.message);
     });
 
-    socket.on('trade:cancel', ({ tradeId }) => {
+    socket.on("trade:cancel", ({ tradeId }) => {
       const result = draftEngine.handleTradeCancel(userId, tradeId);
       if (!result.ok) replyError(socket, result.code, result.message);
     });
 
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       if (draftEngine.hasActiveRoom(userId)) {
         draftEngine.markUserDisconnected(userId);
       } else {

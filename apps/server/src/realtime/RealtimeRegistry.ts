@@ -1,4 +1,4 @@
-import type { Server } from 'socket.io';
+import type { Server } from "socket.io";
 
 export class RealtimeRegistry {
   private socketByUser = new Map<string, string>();

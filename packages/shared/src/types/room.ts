@@ -1,4 +1,9 @@
-export type Phase = 'initial-pick' | 'bench-trade' | 'lock-in' | 'done' | 'aborted';
+export type Phase =
+  | "initial-pick"
+  | "bench-trade"
+  | "lock-in"
+  | "done"
+  | "aborted";
 
 export interface PlayerState {
   userId: string;
@@ -18,7 +23,7 @@ export interface TradeRequest {
   expiresAt: number;
 }
 
-export type TradeResolvedReason = 'cancelled' | 'timeout';
+export type TradeResolvedReason = "cancelled" | "timeout";
 
 export interface RoomState {
   roomId: string;

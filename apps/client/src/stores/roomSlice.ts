@@ -1,6 +1,6 @@
-import type { DraftResult, Phase, RoomState, TradeRequest } from '@app/shared';
-import type { StateCreator } from 'zustand';
-import type { AppStore } from './index.js';
+import type { DraftResult, Phase, RoomState, TradeRequest } from "@app/shared";
+import type { StateCreator } from "zustand";
+import type { AppStore } from "./index.js";
 
 export interface RoomSlice {
   currentRoom: RoomState | null;
@@ -9,14 +9,20 @@ export interface RoomSlice {
   pendingTradeOutgoing: TradeRequest | null;
   draftResult: DraftResult[] | null;
   setRoomState(state: RoomState | null): void;
-  applyPhaseChange(payload: { phase: Phase; phaseEndsAt: number; serverNow: number }): void;
+  applyPhaseChange(payload: {
+    phase: Phase;
+    phaseEndsAt: number;
+    serverNow: number;
+  }): void;
   setPendingTradeIncoming(trade: TradeRequest | null): void;
   setPendingTradeOutgoing(trade: TradeRequest | null): void;
   setDraftResult(result: DraftResult[] | null): void;
   clearRoom(): void;
 }
 
-export const createRoomSlice: StateCreator<AppStore, [], [], RoomSlice> = (set) => ({
+export const createRoomSlice: StateCreator<AppStore, [], [], RoomSlice> = (
+  set,
+) => ({
   currentRoom: null,
   serverOffsetMs: 0,
   pendingTradeIncoming: null,

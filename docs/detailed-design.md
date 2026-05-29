@@ -9,14 +9,14 @@
 
 ## 0. 模組總覽
 
-| #   | 模組                 | 主要職責                                                  |
-| --- | -------------------- | --------------------------------------------------------- |
+| #   | 模組                 | 主要職責                                                    |
+| --- | -------------------- | ----------------------------------------------------------- |
 | 1   | Data Layer           | DB schema、migration；劃定 DB 持久化 vs 記憶體 runtime 邊界 |
-| 2   | Auth                 | 註冊 / 登入 / 身份查驗、JWT 簽發、Socket.IO 握手           |
-| 3   | Matchmaking          | 全域佇列、湊滿 4 人建房、Lobby UI                          |
-| 4   | Draft Engine         | 房間狀態機、階段流轉、倒數、Initial Pick、Lock-in、結算    |
-| 5   | Trade                | 板凳挑選、1v1 交換申請、原子性與限制                       |
-| 6   | Realtime / Reconnect | Socket.IO 連線、斷線 grace period、房間作廢                |
+| 2   | Auth                 | 註冊 / 登入 / 身份查驗、JWT 簽發、Socket.IO 握手            |
+| 3   | Matchmaking          | 全域佇列、湊滿 4 人建房、Lobby UI                           |
+| 4   | Draft Engine         | 房間狀態機、階段流轉、倒數、Initial Pick、Lock-in、結算     |
+| 5   | Trade                | 板凳挑選、1v1 交換申請、原子性與限制                        |
+| 6   | Realtime / Reconnect | Socket.IO 連線、斷線 grace period、房間作廢                 |
 | 7   | Frontend Shell       | 條件渲染、Zustand store、Champion 常數載入、Socket 生命週期 |
 
 依賴方向（A → B 表示 A 依賴 B）：
@@ -49,11 +49,11 @@ flowchart LR
 
 ### 1.2 設計原則：DB vs 記憶體
 
-| 類別            | 範例                                                  | 落腳處             |
-| --------------- | ----------------------------------------------------- | ------------------ |
-| 跨 session 持久 | users、draft_results                                  | **PostgreSQL**     |
+| 類別            | 範例                                                            | 落腳處             |
+| --------------- | --------------------------------------------------------------- | ------------------ |
+| 跨 session 持久 | users、draft_results                                            | **PostgreSQL**     |
 | Runtime 活動    | 房間 metadata / phase / allocations / picks / trades / 倒數計時 | **記憶體（單機）** |
-| 靜態查表        | champions                                             | **shared 常數**    |
+| 靜態查表        | champions                                                       | **shared 常數**    |
 
 理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益，且引入額外失敗模式。房間整個生命週期完全在記憶體跑（roomId 由 `crypto.randomUUID()` 產生）；DB 寫入只發生在 **1 個時點**：
 
@@ -104,12 +104,12 @@ CREATE INDEX idx_results_user ON draft_results(user_id);
 
 ### 2.2 REST 介面
 
-| Method | Path                 | Body                     | 成功回應                       | 備註           |
-| ------ | -------------------- | ------------------------ | ------------------------------ | -------------- |
-| POST   | `/api/auth/register` | `{ username, password }` | `{ user: { id, username } }`   | 同時設 cookie  |
-| POST   | `/api/auth/login`    | `{ username, password }` | `{ user: { id, username } }`   | 設 cookie      |
-| POST   | `/api/auth/logout`   | –                        | `{ ok: true }`                 | 清 cookie      |
-| GET    | `/api/auth/me`       | –                        | `{ user: { id, username } }`   | 未登入回 401   |
+| Method | Path                 | Body                     | 成功回應                     | 備註          |
+| ------ | -------------------- | ------------------------ | ---------------------------- | ------------- |
+| POST   | `/api/auth/register` | `{ username, password }` | `{ user: { id, username } }` | 同時設 cookie |
+| POST   | `/api/auth/login`    | `{ username, password }` | `{ user: { id, username } }` | 設 cookie     |
+| POST   | `/api/auth/logout`   | –                        | `{ ok: true }`               | 清 cookie     |
+| GET    | `/api/auth/me`       | –                        | `{ user: { id, username } }` | 未登入回 401  |
 
 錯誤回應一律 `{ error: { code, message } }`，HTTP 400 / 401 / 409。
 
@@ -137,7 +137,7 @@ CREATE INDEX idx_results_user ON draft_results(user_id);
 io.use((socket, next) => {
   const token = parseCookie(socket.handshake.headers.cookie)?.token;
   const userId = verifyJwt(token);
-  if (!userId) return next(new Error('unauthorized'));
+  if (!userId) return next(new Error("unauthorized"));
   socket.data.userId = userId;
   next();
 });
@@ -237,15 +237,15 @@ stateDiagram-v2
 ### 4.3 Room runtime 狀態（記憶體）
 
 ```ts
-type Phase = 'initial-pick' | 'bench-trade' | 'lock-in' | 'done' | 'aborted';
+type Phase = "initial-pick" | "bench-trade" | "lock-in" | "done" | "aborted";
 
 interface RoomState {
   roomId: string;
   phase: Phase;
-  phaseEndsAt: number;          // epoch ms，server-authoritative
-  serverNow: number;            // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
-  players: PlayerState[];        // 4 人
-  bench: string[];               // 階段 2 可挑英雄
+  phaseEndsAt: number; // epoch ms，server-authoritative
+  serverNow: number; // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
+  players: PlayerState[]; // 4 人
+  bench: string[]; // 階段 2 可挑英雄
   pendingTrades: TradeRequest[]; // 一房可同時 >1 筆（e.g. A↔B、C↔D 並存）
   disconnected: Map<string, number>; // userId -> disconnectedAt
 }
@@ -253,9 +253,9 @@ interface RoomState {
 interface PlayerState {
   userId: string;
   username: string;
-  slot: number;                    // 0~3
-  allocated: string[];             // 階段 1 被分配（2~3 隻）
-  currentChampion: string | null;  // 目前持有；階段 1 結束才非 null
+  slot: number; // 0~3
+  allocated: string[]; // 階段 1 被分配（2~3 隻）
+  currentChampion: string | null; // 目前持有；階段 1 結束才非 null
 }
 ```
 
@@ -309,11 +309,11 @@ interface PlayerState {
 
 繼承 proposal §5.2，本模組強化驗證規則：
 
-| 事件             | 驗證                                                          | 失敗回應                   |
-| ---------------- | ------------------------------------------------------------- | -------------------------- |
-| `pick:initial`   | phase=initial-pick、championId ∈ allocated、尚未 pick         | `error { code, message }`  |
-| `pick:bench`     | phase=bench-trade、championId ∈ bench                         | `error { code, message }`  |
-| `room:join`      | userId 屬於該 roomId                                          | 斷線                        |
+| 事件           | 驗證                                                  | 失敗回應                  |
+| -------------- | ----------------------------------------------------- | ------------------------- |
+| `pick:initial` | phase=initial-pick、championId ∈ allocated、尚未 pick | `error { code, message }` |
+| `pick:bench`   | phase=bench-trade、championId ∈ bench                 | `error { code, message }` |
+| `room:join`    | userId 屬於該 roomId                                  | 斷線                      |
 
 **錯誤策略**：非法操作只回 `error` 給該 client，不踢人、不中斷房間（避免少數 client bug 拖垮整局）。
 
@@ -335,9 +335,9 @@ interface TradeRequest {
   fromUserId: string;
   toUserId: string;
   offerChampionId: string; // from 拿出（= fromUser.currentChampion 當下值）
-  wantChampionId: string;  // 想換（= toUser.currentChampion 當下值）
+  wantChampionId: string; // 想換（= toUser.currentChampion 當下值）
   createdAt: number;
-  expiresAt: number;       // createdAt + 10_000
+  expiresAt: number; // createdAt + 10_000
 }
 ```
 
@@ -402,20 +402,20 @@ sequenceDiagram
 
 繼承 proposal §5.2 的 `trade:request` / `trade:respond` / `trade:incoming` / `trade:resolved`；額外：
 
-| 方向 | 事件            | Payload                                                  | 說明                                          |
-| ---- | --------------- | -------------------------------------------------------- | --------------------------------------------- |
-| S→C  | `trade:pending` | `TradeRequest`                                           | 對發起方確認申請已建立（同 incoming，便於 UI 直接渲染）|
-| C→S  | `trade:cancel`  | `{ tradeId }`                                            | 發起方主動取消（只有 `fromUserId` 可呼叫）    |
-| S→C  | `trade:resolved`| `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | `fromUserId`/`toUserId` 供前端辨別自己的角色（決定要不要跳通知）；`reason` 區分拒絕 / 取消 / 超時 |
+| 方向 | 事件             | Payload                                                                          | 說明                                                                                              |
+| ---- | ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| S→C  | `trade:pending`  | `TradeRequest`                                                                   | 對發起方確認申請已建立（同 incoming，便於 UI 直接渲染）                                           |
+| C→S  | `trade:cancel`   | `{ tradeId }`                                                                    | 發起方主動取消（只有 `fromUserId` 可呼叫）                                                        |
+| S→C  | `trade:resolved` | `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | `fromUserId`/`toUserId` 供前端辨別自己的角色（決定要不要跳通知）；`reason` 區分拒絕 / 取消 / 超時 |
 
 **廣播範圍**：
 
-| 事件              | 收件對象       | 說明                                                        |
-| ----------------- | -------------- | ----------------------------------------------------------- |
-| `trade:incoming`  | 接收方 B       | 只有被申請者需要彈窗                                        |
-| `trade:pending`   | 發起方 A       | 只有發起者需要「等待回應中」狀態                            |
-| `trade:resolved`  | 雙方 A、B      | 用於關閉 modal / 顯示結果；其他玩家未知此交易存在，不需發送 |
-| `room:state`      | 房內全員       | 接受成功時棋盤狀態改變，其他玩家靠這個看到英雄互換          |
+| 事件             | 收件對象  | 說明                                                        |
+| ---------------- | --------- | ----------------------------------------------------------- |
+| `trade:incoming` | 接收方 B  | 只有被申請者需要彈窗                                        |
+| `trade:pending`  | 發起方 A  | 只有發起者需要「等待回應中」狀態                            |
+| `trade:resolved` | 雙方 A、B | 用於關閉 modal / 顯示結果；其他玩家未知此交易存在，不需發送 |
+| `room:state`     | 房內全員  | 接受成功時棋盤狀態改變，其他玩家靠這個看到英雄互換          |
 
 ---
 
@@ -432,8 +432,8 @@ sequenceDiagram
 
 ```ts
 class RealtimeRegistry {
-  socketByUser: Map<string, string>;  // userId -> socketId
-  roomByUser: Map<string, string>;    // userId -> roomId（若在房中）
+  socketByUser: Map<string, string>; // userId -> socketId
+  roomByUser: Map<string, string>; // userId -> roomId（若在房中）
 }
 ```
 
@@ -470,11 +470,11 @@ sequenceDiagram
 
 繼承 proposal §5.2；本模組新增：
 
-| 方向 | 事件                  | Payload              | 說明                       |
-| ---- | --------------------- | -------------------- | -------------------------- |
-| S→C  | `player:disconnected` | `{ userId }`         | 某玩家暫離                  |
-| S→C  | `player:reconnected`  | `{ userId }`         | 某玩家回來                  |
-| S→C  | `error`               | `{ code, message }`  | 非法操作回報（不踢人）      |
+| 方向 | 事件                  | Payload             | 說明                   |
+| ---- | --------------------- | ------------------- | ---------------------- |
+| S→C  | `player:disconnected` | `{ userId }`        | 某玩家暫離             |
+| S→C  | `player:reconnected`  | `{ userId }`        | 某玩家回來             |
+| S→C  | `error`               | `{ code, message }` | 非法操作回報（不踢人） |
 
 ---
 
@@ -512,7 +512,7 @@ function App() {
 export interface AuthSlice {
   user: { id: string; username: string } | null;
   setUser(u: User | null): void;
-  logout(): void;            // 同時清空 room / lobby 等
+  logout(): void; // 同時清空 room / lobby 等
 }
 
 // stores/championsSlice.ts（啟動時載入後不變）
@@ -545,7 +545,11 @@ export interface SocketSlice {
 }
 
 // stores/index.ts
-export type AppStore = AuthSlice & ChampionsSlice & LobbySlice & RoomSlice & SocketSlice;
+export type AppStore = AuthSlice &
+  ChampionsSlice &
+  LobbySlice &
+  RoomSlice &
+  SocketSlice;
 
 export const useAppStore = create<AppStore>()((...a) => ({
   ...createAuthSlice(...a),
@@ -560,12 +564,12 @@ export const useAppStore = create<AppStore>()((...a) => ({
 
 各元件透過 selector 訂閱對應欄位（避免全樹 re-render）：
 
-| 元件          | 訂閱                              |
-| ------------- | --------------------------------- |
-| `PlayerCard`  | `currentRoom.players[i]`          |
-| `Bench`       | `currentRoom.bench`               |
-| `Countdown`   | `currentRoom.phaseEndsAt`         |
-| `TradeModal`  | `pendingTradeIncoming`            |
+| 元件         | 訂閱                      |
+| ------------ | ------------------------- |
+| `PlayerCard` | `currentRoom.players[i]`  |
+| `Bench`      | `currentRoom.bench`       |
+| `Countdown`  | `currentRoom.phaseEndsAt` |
+| `TradeModal` | `pendingTradeIncoming`    |
 
 ### 7.4 Champion 資料載入
 
@@ -583,8 +587,8 @@ export const useAppStore = create<AppStore>()((...a) => ({
 
 ```ts
 interface Champion {
-  id: string;       // 'ahri'、'garen'
-  name: string;     // '九尾妖狐'
+  id: string; // 'ahri'、'garen'
+  name: string; // '九尾妖狐'
   imageUrl: string; // 圖片相對路徑
   // 未來可加 roles、tags
 }
@@ -602,50 +606,50 @@ interface Champion {
 
 整合 proposal §5.2 與本文件新增事件：
 
-| 方向 | 事件                  | Payload                                                    | 模組         |
-| ---- | --------------------- | ---------------------------------------------------------- | ------------ |
-| C→S  | `queue:join`          | –                                                          | Matchmaking  |
-| C→S  | `queue:leave`         | –                                                          | Matchmaking  |
-| S→C  | `queue:update`        | `{ size, position }`                                       | Matchmaking  |
-| S→C  | `room:start`          | `{ roomId }`                                               | Matchmaking  |
-| C→S  | `room:join`           | `{ roomId }`                                               | Realtime     |
-| S→C  | `room:state`          | `RoomState`                                                | Draft Engine |
-| S→C  | `room:phase`          | `{ phase, phaseEndsAt, serverNow }`                        | Draft Engine |
-| C→S  | `pick:initial`        | `{ championId }`                                           | Draft Engine |
-| C→S  | `pick:bench`          | `{ championId }`                                           | Draft Engine |
-| C→S  | `trade:request`       | `{ targetUserId, offerChampionId, wantChampionId }`        | Trade        |
-| C→S  | `trade:respond`       | `{ tradeId, accept }`                                      | Trade        |
-| C→S  | `trade:cancel`        | `{ tradeId }`                                              | Trade        |
-| S→C  | `trade:incoming`      | `TradeRequest`                                             | Trade        |
-| S→C  | `trade:pending`       | `TradeRequest`                                             | Trade        |
-| S→C  | `trade:resolved`      | `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | Trade |
-| S→C  | `room:result`         | `DraftResult[]`                                            | Draft Engine |
-| S→C  | `room:aborted`        | `{ reason }`                                               | Realtime     |
-| S→C  | `player:disconnected` | `{ userId }`                                               | Realtime     |
-| S→C  | `player:reconnected`  | `{ userId }`                                               | Realtime     |
-| S→C  | `error`               | `{ code, message }`                                        | All          |
+| 方向 | 事件                  | Payload                                                                          | 模組         |
+| ---- | --------------------- | -------------------------------------------------------------------------------- | ------------ |
+| C→S  | `queue:join`          | –                                                                                | Matchmaking  |
+| C→S  | `queue:leave`         | –                                                                                | Matchmaking  |
+| S→C  | `queue:update`        | `{ size, position }`                                                             | Matchmaking  |
+| S→C  | `room:start`          | `{ roomId }`                                                                     | Matchmaking  |
+| C→S  | `room:join`           | `{ roomId }`                                                                     | Realtime     |
+| S→C  | `room:state`          | `RoomState`                                                                      | Draft Engine |
+| S→C  | `room:phase`          | `{ phase, phaseEndsAt, serverNow }`                                              | Draft Engine |
+| C→S  | `pick:initial`        | `{ championId }`                                                                 | Draft Engine |
+| C→S  | `pick:bench`          | `{ championId }`                                                                 | Draft Engine |
+| C→S  | `trade:request`       | `{ targetUserId, offerChampionId, wantChampionId }`                              | Trade        |
+| C→S  | `trade:respond`       | `{ tradeId, accept }`                                                            | Trade        |
+| C→S  | `trade:cancel`        | `{ tradeId }`                                                                    | Trade        |
+| S→C  | `trade:incoming`      | `TradeRequest`                                                                   | Trade        |
+| S→C  | `trade:pending`       | `TradeRequest`                                                                   | Trade        |
+| S→C  | `trade:resolved`      | `{ tradeId, fromUserId, toUserId, accepted, reason?: 'cancelled' \| 'timeout' }` | Trade        |
+| S→C  | `room:result`         | `DraftResult[]`                                                                  | Draft Engine |
+| S→C  | `room:aborted`        | `{ reason }`                                                                     | Realtime     |
+| S→C  | `player:disconnected` | `{ userId }`                                                                     | Realtime     |
+| S→C  | `player:reconnected`  | `{ userId }`                                                                     | Realtime     |
+| S→C  | `error`               | `{ code, message }`                                                              | All          |
 
 ---
 
 ## 附錄 B：REST 端點總表
 
-| Method | Path                 | 認證 | 模組        |
-| ------ | -------------------- | ---- | ----------- |
-| POST   | `/api/auth/register` | 否   | Auth        |
-| POST   | `/api/auth/login`    | 否   | Auth        |
-| POST   | `/api/auth/logout`   | 是   | Auth        |
-| GET    | `/api/auth/me`       | 是   | Auth        |
+| Method | Path                 | 認證 | 模組           |
+| ------ | -------------------- | ---- | -------------- |
+| POST   | `/api/auth/register` | 否   | Auth           |
+| POST   | `/api/auth/login`    | 否   | Auth           |
+| POST   | `/api/auth/logout`   | 是   | Auth           |
+| GET    | `/api/auth/me`       | 是   | Auth           |
 | GET    | `/api/champions`     | 否   | Frontend Shell |
 
 ---
 
 ## 附錄 C：環境變數
 
-| 變數            | 說明                                | 範例                                   |
-| --------------- | ----------------------------------- | -------------------------------------- |
-| `DATABASE_URL`  | Postgres 連線字串                   | `postgres://user:pass@localhost/draft` |
-| `JWT_SECRET`    | JWT 簽章密鑰                        | 64-byte 隨機字串                       |
-| `NODE_ENV`      | `development` / `production`        | `production`                           |
+| 變數           | 說明                         | 範例                                   |
+| -------------- | ---------------------------- | -------------------------------------- |
+| `DATABASE_URL` | Postgres 連線字串            | `postgres://user:pass@localhost/draft` |
+| `JWT_SECRET`   | JWT 簽章密鑰                 | 64-byte 隨機字串                       |
+| `NODE_ENV`     | `development` / `production` | `production`                           |
 
 ---
 
@@ -661,11 +665,11 @@ interface Champion {
 export default {
   server: {
     proxy: {
-      '/api':       'http://localhost:3000',
-      '/socket.io': { target: 'http://localhost:3000', ws: true }
-    }
-  }
-}
+      "/api": "http://localhost:3000",
+      "/socket.io": { target: "http://localhost:3000", ws: true },
+    },
+  },
+};
 ```
 
 - 前端打 `/api/...`、`/socket.io/...`，Vite dev server 轉發到後端

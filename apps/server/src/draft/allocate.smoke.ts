@@ -1,5 +1,5 @@
-import { CHAMPIONS } from '@app/shared';
-import { allocateChampions, type Rng } from './allocate.js';
+import { CHAMPIONS } from "@app/shared";
+import { allocateChampions, type Rng } from "./allocate.js";
 
 function seeded(seed: number): Rng {
   let s = seed >>> 0;
@@ -32,16 +32,20 @@ function run(): void {
       all.push(...r.allocated);
     }
     const unique = new Set(all);
-    assert(unique.size === all.length, `seed ${seed}: duplicate champion in allocation`);
-    for (const id of all) assert(pool.includes(id), `seed ${seed}: ${id} not in pool`);
+    assert(
+      unique.size === all.length,
+      `seed ${seed}: duplicate champion in allocation`,
+    );
+    for (const id of all)
+      assert(pool.includes(id), `seed ${seed}: ${id} not in pool`);
   }
 
   // determinism: same seed => same result
   const a = allocateChampions(players, pool, seeded(42));
   const b = allocateChampions(players, pool, seeded(42));
-  assert(JSON.stringify(a) === JSON.stringify(b), 'seed 42 not deterministic');
+  assert(JSON.stringify(a) === JSON.stringify(b), "seed 42 not deterministic");
 
-  console.log('allocate.smoke: OK');
+  console.log("allocate.smoke: OK");
 }
 
 run();
