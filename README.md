@@ -87,11 +87,11 @@ cp .env.example .env
 
 # 編輯 .env：POSTGRES_PASSWORD, DATABASE_URL, JWT_SECRET 等環境變數
 
-# 載入 .env 並 export 成環境變數，供下方 docker 指令使用
-set -a && source .env && set +a   
+# 建立資料庫 schema（套用 migrations，已套用的會自動跳過）
+pnpm --filter @app/server migrate
 
-# 建立資料庫 schema
-docker compose exec -T postgres psql -U $POSTGRES_USER -d $POSTGRES_DB < apps/server/migrations/001_init.sql
+# 選用：建立 4 個測試帳號（player1~player4，密碼 password），方便湊滿 4 人測試
+pnpm --filter @app/server seed
 
 # 啟動開發環境
 pnpm dev
