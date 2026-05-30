@@ -77,13 +77,13 @@ fnm use
 corepack enable    # 啟用 corepack，自動使用 package.json 指定的 pnpm 版本
 pnpm install
 
-# 啟動 PostgreSQL
-docker compose up -d
-
 # 設定環境變數
 cp .env.example .env
 
 # 編輯 .env：POSTGRES_PASSWORD, DATABASE_URL, JWT_SECRET 等環境變數
+
+# 啟動 PostgreSQL（docker compose 會讀 .env 內的 POSTGRES_* 變數）
+docker compose up -d
 
 # 建立資料庫 schema（套用 migrations，已套用的會自動跳過）
 pnpm --filter @app/server migrate
