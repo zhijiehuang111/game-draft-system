@@ -54,13 +54,13 @@ export function BenchTradeScreen() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="px-8 pt-6 pb-3">
+      <div className="px-4 sm:px-6 lg:px-8 pt-5 lg:pt-6 pb-3">
         <PhaseHeader phaseEndsAt={room.phaseEndsAt} tone="hex" />
       </div>
 
-      <div className="flex-1 grid grid-cols-[280px_1fr_280px] gap-6 px-8 pb-10 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-6 px-4 sm:px-6 lg:px-8 pb-10 min-h-0">
         {/* ============== LEFT — ally rail ============== */}
-        <aside className="slide-in-left relative z-30">
+        <aside className="slide-in-left relative z-30 order-3 lg:order-none">
           <AllyRail
             players={room.players}
             meUserId={user.id}
@@ -78,7 +78,7 @@ export function BenchTradeScreen() {
         </aside>
 
         {/* ============== CENTER — featured champion ============== */}
-        <section className="flex flex-col items-center justify-start gap-6 fade-up pt-4">
+        <section className="flex flex-col items-center justify-start gap-6 fade-up pt-4 order-1 lg:order-none">
           {/* ornate hex showcase */}
           <div className="relative">
             <div
@@ -103,8 +103,8 @@ export function BenchTradeScreen() {
             <div
               className="relative hex-shape"
               style={{
-                width: 240,
-                height: 240,
+                width: "clamp(160px, 44vw, 240px)",
+                height: "clamp(160px, 44vw, 240px)",
                 background:
                   "conic-gradient(from 200deg, #C8AA6E, #F0E6D2 25%, #C8AA6E 50%, #785A28 75%, #C8AA6E)",
                 padding: 3,
@@ -144,7 +144,7 @@ export function BenchTradeScreen() {
         </section>
 
         {/* ============== RIGHT — bench ============== */}
-        <aside className="slide-in-right">
+        <aside className="slide-in-right order-2 lg:order-none">
           <AngledPanel
             variant="bronze"
             className="h-full"

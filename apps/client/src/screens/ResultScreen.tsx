@@ -10,14 +10,14 @@ export function ResultScreen() {
   if (!results) return null;
 
   return (
-    <div className="min-h-screen flex flex-col px-8 py-8">
-      <header className="grid grid-cols-3 items-center mb-6">
-        <div className="justify-self-start">
+    <div className="min-h-screen flex flex-col px-4 sm:px-6 lg:px-8 py-8">
+      <header className="flex flex-col items-center gap-3 mb-6 lg:grid lg:grid-cols-3 lg:items-center lg:gap-0">
+        <div className="self-start lg:self-auto lg:justify-self-start">
           <Button variant="ghost" size="sm" onClick={clearRoom}>
             ← Back to Lobby
           </Button>
         </div>
-        <div className="justify-self-center flex flex-col items-center gap-1">
+        <div className="lg:justify-self-center flex flex-col items-center gap-1">
           <Ornament width={280} />
           <div
             className="h-display text-[18px]"
@@ -27,7 +27,7 @@ export function ResultScreen() {
           </div>
           <Ornament width={280} flip />
         </div>
-        <div />
+        <div className="hidden lg:block" />
       </header>
 
       <main className="flex-1 flex items-center justify-center fade-up">

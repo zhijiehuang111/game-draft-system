@@ -201,10 +201,7 @@ function TradeBubble(props: BubbleProps) {
   const accent = props.kind === "incoming" ? "#0AC8B9" : "#C8AA6E";
 
   return (
-    <div
-      className="absolute z-10 top-1/2 -translate-y-1/2 fade-up"
-      style={{ left: "calc(100% + 12px)", width: 280 }}
-    >
+    <div className="fade-up w-full mt-2 lg:absolute lg:z-10 lg:top-1/2 lg:-translate-y-1/2 lg:mt-0 lg:w-[280px] lg:left-[calc(100%_+_12px)]">
       <AngledPanel
         variant={props.kind === "incoming" ? "hex" : "gold"}
         notch={10}

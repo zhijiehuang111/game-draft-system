@@ -27,16 +27,16 @@ export function InitialPickScreen() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="px-8 pt-6 pb-3">
+      <div className="px-4 sm:px-6 lg:px-8 pt-5 lg:pt-6 pb-3">
         <PhaseHeader
           title="Choose Your Champion"
           phaseEndsAt={room.phaseEndsAt}
         />
       </div>
 
-      <div className="flex-1 grid grid-cols-[280px_1fr_280px] gap-6 px-8 pb-10 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-6 px-4 sm:px-6 lg:px-8 pb-10 min-h-0">
         {/* ============== LEFT — ally rail ============== */}
-        <aside className="slide-in-left">
+        <aside className="slide-in-left order-3 lg:order-none">
           <AllyRail
             players={room.players}
             meUserId={user.id}
@@ -45,13 +45,15 @@ export function InitialPickScreen() {
         </aside>
 
         {/* ============== CENTER — your allocated cards ============== */}
-        <section className="flex flex-col items-center justify-start gap-5 fade-up pt-4">
+        <section className="flex flex-col items-center justify-start gap-5 fade-up pt-4 order-1 lg:order-none">
           <div
-            className="grid gap-5 w-full"
-            style={{
-              gridTemplateColumns: `repeat(${me.allocated.length}, minmax(0, 1fr))`,
-              maxWidth: me.allocated.length === 2 ? 520 : 760,
-            }}
+            className="grid grid-cols-2 lg:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))] gap-5 w-full"
+            style={
+              {
+                "--cols": me.allocated.length,
+                maxWidth: me.allocated.length === 2 ? 520 : 760,
+              } as React.CSSProperties
+            }
           >
             {me.allocated.map((id, i) => {
               const picked = me.currentChampion === id;
@@ -162,7 +164,7 @@ export function InitialPickScreen() {
         </section>
 
         {/* ============== RIGHT — champion detail / composition ============== */}
-        <aside className="slide-in-right">
+        <aside className="slide-in-right order-2 lg:order-none">
           <AngledPanel
             variant="bronze"
             className="h-full"
