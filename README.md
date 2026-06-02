@@ -2,9 +2,11 @@
 
 「配對 → 選角 → 板凳挑選 → 交換 → 鎖定」的即時多人選角系統。
 
-## Demo
+Live Demo: [game-draft.zhijiehuang.com](https://game-draft.zhijiehuang.com)
 
-<!-- TODO: GIF / 影片 -->
+<!-- ## Preview -->
+
+<!-- 把 mp4 拖進 GitHub issue/PR 輸入框，複製產生的 user-attachments 網址，單獨貼在下面一行（不要包標籤或括號，GitHub 會自動渲染成播放器） -->
 
 ## Tech Stack
 
