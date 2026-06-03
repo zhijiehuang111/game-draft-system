@@ -4,9 +4,9 @@
 
 Live Demo: [game-draft.zhijiehuang.com](https://game-draft.zhijiehuang.com)
 
-<!-- ## Preview -->
+## Preview
 
-<!-- 把 mp4 拖進 GitHub issue/PR 輸入框，複製產生的 user-attachments 網址，單獨貼在下面一行（不要包標籤或括號，GitHub 會自動渲染成播放器） -->
+https://github.com/user-attachments/assets/6456c8c5-c760-4f1c-87b2-e0408317d413
 
 ## Tech Stack
 
