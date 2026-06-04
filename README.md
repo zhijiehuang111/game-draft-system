@@ -99,9 +99,9 @@ pnpm dev
 
 ## Roadmap
 
-- [ ] 自建房 + 邀請碼（DB schema 已預留欄位）
-- [ ] 房內聊天室
+- [ ] 測試覆蓋：核心邏輯 unit + DB/API integration + CI
 - [ ] 歷史記錄 / 個人戰績頁
+- [ ] 房內聊天室
+- [ ] 自建房 + 邀請碼（DB schema 已預留欄位）
 - [ ] OAuth 登入（Google / Discord）
-- [ ] 完整測試覆蓋（unit + integration + e2e）
 - [ ] Redis 支援多 instance 水平擴展
