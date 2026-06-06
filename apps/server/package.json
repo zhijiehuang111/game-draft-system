@@ -10,8 +10,7 @@
     "typecheck": "tsc --noEmit",
     "migrate": "tsx --env-file=../../.env src/db/migrate.ts",
     "smoke": "tsx --env-file=../../.env src/db/smoke.ts",
-    "seed": "tsx --env-file=../../.env src/db/seed.ts",
-    "smoke:allocate": "tsx src/draft/allocate.smoke.ts"
+    "seed": "tsx --env-file=../../.env src/db/seed.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",
