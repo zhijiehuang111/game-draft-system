@@ -14,6 +14,9 @@ export default defineConfig({
           root: "./apps/server",
           environment: "node",
           include: ["src/**/*.{test,spec}.ts"],
+          env: {
+            JWT_SECRET: "test-secret-do-not-use-in-prod",
+          },
         },
       },
     ],

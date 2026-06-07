@@ -7,6 +7,7 @@
 - [ ] 重構 / 整理 (refactor / chore)
 - [ ] 文件 (docs)
 - [ ] 樣式 / UI (style)
+- [ ] 測試 (test)
 
 ## 變更內容
 
