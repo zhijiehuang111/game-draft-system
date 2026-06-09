@@ -1,26 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DraftEngine, DraftPlayer } from "../draft/engine.js";
 import type { AppIoServer } from "../realtime/io.js";
+import { createFakeIo, type EmitRecord } from "../test-helpers/io.js";
 import { Matchmaker } from "./Matchmaker.js";
-
-interface EmitRecord {
-  target: string | null;
-  event: string;
-  payload: unknown;
-}
-
-function createFakeIo() {
-  const emits: EmitRecord[] = [];
-  const io = {
-    emit: (event: string, payload: unknown) =>
-      emits.push({ target: null, event, payload }),
-    to: (room: string) => ({
-      emit: (event: string, payload: unknown) =>
-        emits.push({ target: room, event, payload }),
-    }),
-  };
-  return { io: io as unknown as AppIoServer, emits };
-}
 
 describe("Matchmaker", () => {
   let emits: EmitRecord[];
