@@ -1,8 +1,6 @@
 # LoL 風格配對與選角系統 — 詳細設計文檔
 
-> 上游：[`docs/proposal.md`](./proposal.md)
->
-> 本文件依「領域 + 端」中顆粒度切分為 7 個模組，每個模組描述職責、對外介面、關鍵流程。
+> 本文件為本專案的設計文件，依「領域 + 端」中顆粒度切分為 7 個模組，每個模組描述職責、對外介面、關鍵流程。
 > Auth 採 **JWT + httpOnly cookie**；英雄資料採 **shared 常數**（未來可平滑遷移到 DB）。
 
 ---
@@ -39,6 +37,22 @@ flowchart LR
 
 ---
 
+## 範疇邊界
+
+### 明確不做（MVP 非範疇）
+
+刻意排除以下功能，聚焦在「即時多人狀態機 + 斷線重連」這條主線。部分項目已列入 README 的 Roadmap，但不在當前實作範圍內：
+
+- 實力分配 / MMR：配對採先到先配，不計實力
+- 5v5 / 多隊：單一房間 = 一隊 4 人
+- 房內聊天室
+- 歷史記錄 / 個人戰績頁
+- 音效
+- 自建房 / 邀請碼（DB schema 已預留 `type` / `invite_code` 欄位，方便日後擴充）
+- OAuth 登入
+
+---
+
 ## 1. Data Layer
 
 ### 1.1 職責
@@ -57,7 +71,7 @@ flowchart LR
 
 理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益，且引入額外失敗模式。房間整個生命週期完全在記憶體跑（roomId 由 `crypto.randomUUID()` 產生）；DB 寫入只發生在 **1 個時點**：
 
-1. **結算**：`INSERT draft_results x5`（lock-in 結束時）
+1. **結算**：`INSERT draft_results x4`（lock-in 結束時）
 
 作廢的房間不落 DB——`room:aborted` 事件廣播完即釋放記憶體，運營端如需統計用 log / metrics 處理。
 
@@ -73,7 +87,7 @@ CREATE TABLE users (
 );
 
 -- 最終結果（phase=done 時寫入）
--- room_id 是 in-memory 房間的 UUID，作為同一局 5 筆 row 的分組鍵（無 FK）
+-- room_id 是 in-memory 房間的 UUID，作為同一局 4 筆 row 的分組鍵（無 FK）
 CREATE TABLE draft_results (
   room_id           UUID NOT NULL,
   user_id           UUID NOT NULL REFERENCES users(id),
@@ -87,10 +101,15 @@ CREATE INDEX idx_results_user ON draft_results(user_id);
 說明：
 
 - 不存 in-room 中繼狀態（allocated / currentChampion / phase / bench）：runtime 變動頻繁全在記憶體，最終值入 `draft_results`
-- 不建 `rooms` 表：房間生命週期短、metadata 全在記憶體，沒有完局後查詢場景；唯一持久化的「曾發生過 draft」訊號就是 5 筆 `draft_results`
+- 不建 `rooms` 表：房間生命週期短、metadata 全在記憶體，沒有完局後查詢場景；唯一持久化的「曾發生過 draft」訊號就是 4 筆 `draft_results`
 - 不建 `trades` 表：交換生命週期僅在房內，房間結束即丟棄
 - 房間玩家 N:M 中介表省略：`draft_results` 已涵蓋完局後 user ↔ room 對應
 - 未來若需 custom 房 / 邀請碼 / replay / 作廢房紀錄，再加對應表
+
+### 1.4 Migration 與 Repository
+
+- **Migration runner**（`db/migrate.ts`）：掃 `migrations/*.sql` 依檔名排序套用，用 `schema_migrations` 表記錄已套用檔名、啟動時自動跳過套過的；`pnpm --filter @app/server migrate` 執行（冪等）。
+- **Repository 收 `Db = Pool | PoolClient`**：一次性查詢直接傳 `pool`；要包 transaction 時用 `pool.connect()` 取得 client、`BEGIN/COMMIT` 後把同一個 client 傳給多個 repo 函式。讓「單筆查詢」與「交易內查詢」共用同一份 repo 程式碼，也方便測試注入。
 
 ---
 
@@ -246,7 +265,7 @@ interface RoomState {
   serverNow: number; // epoch ms，快照時 server 時間，供 client 校正時鐘偏移
   players: PlayerState[]; // 4 人
   bench: string[]; // 階段 2 可挑英雄
-  pendingTrades: TradeRequest[]; // 一房可同時 >1 筆（e.g. A↔B、C↔D 並存）
+  pendingTrades: Map<string, TradeRequest>; // tradeId -> TradeRequest；一房可同時 >1 筆（e.g. A↔B、C↔D 並存）
   disconnected: Map<string, number>; // userId -> disconnectedAt
 }
 
@@ -274,7 +293,7 @@ interface PlayerState {
 - 前端以 `serverNow` 校正 client 時鐘偏移：`offset = serverNow - Date.now()`，之後 `remaining = phaseEndsAt - (Date.now() + offset)`
 - 斷線重連：client 收到 `room:state` 後直接用同樣公式重算剩餘時間，無需額外同步
 - 階段切換一律等 `setTimeout` 到時觸發，不做提前完成
-- 階段時長依 proposal §4.1：Initial Pick 15s、Bench & Trade 45s、Lock-in 3s
+- 階段時長：Initial Pick 15s、Bench & Trade 45s、Lock-in 3s
 
 ### 4.6 階段 1：Initial Pick
 
@@ -301,13 +320,13 @@ interface PlayerState {
 - 凍結：拒絕所有 `pick:*`、`trade:*`（回 `error { code: 'phase-locked' }`）
 - 倒數 3 秒視覺動畫
 - 動畫結束：
-  1. `INSERT draft_results` x5（依 `currentChampion`）
+  1. `INSERT draft_results` x4（依 `currentChampion`）
   2. 廣播 `room:result`
   3. `phase = 'done'`，房間記憶體狀態保留供 client 顯示後續查詢，X 秒後釋放
 
 ### 4.9 介面契約（Socket）
 
-繼承 proposal §5.2，本模組強化驗證規則：
+事件清單見附錄 A；本模組強化以下驗證規則：
 
 | 事件           | 驗證                                                  | 失敗回應                  |
 | -------------- | ----------------------------------------------------- | ------------------------- |
@@ -343,7 +362,7 @@ interface TradeRequest {
 
 ### 5.3 規則
 
-- 每位玩家任意時刻最多涉入 1 筆 pending trade（不分發起方或接收方）（proposal §4.2）
+- 每位玩家任意時刻最多涉入 1 筆 pending trade（不分發起方或接收方）
 - 鎖定粒度為 **per-user**，非 per-room；4 人房可同時有兩筆獨立交易（例如 A↔B 與 C↔D 並存），各自解析互不影響
 - 申請建立後，雙方在解析前不可發 `pick:bench`、發起新 `trade:request`、或接收他人的 `trade:request`（鎖定）
 - 10 秒超時 → 自動視為拒絕
@@ -400,7 +419,7 @@ sequenceDiagram
 
 ### 5.6 新增介面
 
-繼承 proposal §5.2 的 `trade:request` / `trade:respond` / `trade:incoming` / `trade:resolved`；額外：
+基礎事件 `trade:request` / `trade:respond` / `trade:incoming` / `trade:resolved`（見附錄 A）；額外：
 
 | 方向 | 事件             | Payload                                                                          | 說明                                                                                              |
 | ---- | ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -423,10 +442,13 @@ sequenceDiagram
 
 ### 6.1 職責
 
-- Socket.IO 命名空間管理（`/`、`/room`）
+- Socket.IO 連線管理（單一預設 namespace `/`）
 - userId ↔ socketId 對映、單一連線
 - 斷線 grace period（15 秒）
 - 重連狀態快照推送、房間作廢廣播
+
+> **設計決策：單一 namespace + socket.io room 隔離**
+> MVP 不開第二個 `/room` namespace，房間改用 socket.io 內建的 room（`room:${roomId}`、個人 `user:${userId}`）做訊息隔離。少一層 namespace 的握手與生命週期維護成本，房間級廣播用 `io.to(\`room:${roomId}\`)` 一樣乾淨。
 
 ### 6.2 記憶體結構
 
@@ -446,7 +468,7 @@ class RealtimeRegistry {
 sequenceDiagram
   participant C as Client
   participant S as Server
-  participant Others as 其餘 4 人
+  participant Others as 其餘 3 人
 
   C--xS: disconnect
   S->>S: roomState.disconnected[userId] = now
@@ -466,9 +488,13 @@ sequenceDiagram
   end
 ```
 
+> **設計決策：重整 / 關閉分頁 = 主動離開 → abort**
+> 重整或關分頁視為上面流程的「主動關閉」分支，直接走 abort，**不**做 server-side 自動 rejoin、也**不**在 client persist `currentRoom`。取捨：要讓重整能回房，得在 server 端把房間狀態撐更久 + 一套 rejoin 協議，或在 client 持久化房號——兩者都為一個低頻情境引入額外複雜度與失敗模式，對 60 秒生命週期的房間不划算。
+> 注意這跟「斷線重連」是兩回事：**同分頁的網路抖動**，socket.io client 會自動重連，store 還在記憶體會自動 emit `room:join`，所以 15 秒寬限內仍能無縫回房。被當成離開的只有「整個 page context 沒了」的重整 / 關閉。
+
 ### 6.4 新增介面
 
-繼承 proposal §5.2；本模組新增：
+本模組新增以下事件（完整事件清單見附錄 A）：
 
 | 方向 | 事件                  | Payload             | 說明                   |
 | ---- | --------------------- | ------------------- | ---------------------- |
@@ -487,7 +513,9 @@ sequenceDiagram
 - Champion 常數載入與快取
 - Socket 連線在 React 樹外的生命週期管理
 
-### 7.2 畫面條件渲染
+### 7.2 畫面條件渲染（為何不用路由）
+
+房間無法被外部 deep link 進入（必須走配對佇列才能進房），URL 不承載任何業務資訊，因此**不導入 React Router**：畫面切換改由全域狀態決定，App 根組件做條件渲染。日後若要做自建房邀請連結（URL 真的承載資訊時）再引入路由。
 
 ```ts
 function App() {
@@ -503,9 +531,14 @@ function App() {
 
 `room.phase === 'aborted'`：toast 提示後 `room = null`，自動回到 Lobby。
 
-### 7.3 Zustand store 切片
+### 7.3 狀態管理：Zustand（為何不用 Context）
 
-採用 **單一 store + slice pattern**（Zustand 官方推薦）：對外仍是一個 `useAppStore`，內部按 domain 拆成獨立 slice 檔，PR review 容易、跨 slice 仍可互通（例如 `logout` 一次重置多個切片）。
+RoomState 由 socket 高頻推送，房內元件樹有多個元件各自訂閱 state 的不同片段（玩家卡、板凳、倒數、交換彈窗）。選 Zustand 而非 Context 的兩個理由：
+
+- **selector 訂閱**：元件只訂閱自己用到的欄位，避免 Context「value 一變、全體 consumer re-render」的問題
+- **可在 React 樹外 setState**：socket 事件 handler 在 React 之外，Zustand 能直接 `useAppStore.setState(...)`，不需把 socket 綁進元件生命週期
+
+store 結構採 **單一 store + slice pattern**（Zustand 官方推薦）：對外仍是一個 `useAppStore`，內部按 domain 拆成獨立 slice 檔，PR review 容易、跨 slice 仍可互通（例如 `logout` 一次重置多個切片）。
 
 ```ts
 // stores/authSlice.ts
@@ -604,7 +637,7 @@ interface Champion {
 
 ## 附錄 A：Socket 事件總表
 
-整合 proposal §5.2 與本文件新增事件：
+本專案完整 Socket 事件清單：
 
 | 方向 | 事件                  | Payload                                                                          | 模組         |
 | ---- | --------------------- | -------------------------------------------------------------------------------- | ------------ |
@@ -707,3 +740,9 @@ server {
 
 - `httpOnly: true`、`secure: true`（prod）、`sameSite: 'Lax'`、`path: '/'`
 - 不需要 `sameSite: 'None'`、不需要設定 `domain`
+
+### 部署關鍵決策 / 踩雷
+
+- **Server bind `127.0.0.1`**：Node 只監聽 loopback，外部一律走 nginx reverse proxy 進來，後端 port 不對公網開放。
+- **`shared` 是 source-level export**（`package.json` 的 `main` 指向 `./src/index.ts`，無 build step）：server 的 `tsc` 用 `NodeNext` resolution 直接解析到 `.ts`，省掉 shared 套件自己的編譯步驟。
+- **PM2 設定用 `.cjs`**（`ecosystem.config.cjs`）：root 是 `"type": "module"`，PM2 config 必須是 CommonJS；並設 `interpreter: process.execPath` 避開 fnm multishell 在 reboot 後找不到 node 的雷。
