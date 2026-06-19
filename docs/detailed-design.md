@@ -69,7 +69,7 @@ flowchart LR
 | Runtime 活動    | 房間 metadata / phase / allocations / picks / trades / 倒數計時 | **記憶體（單機）** |
 | 靜態查表        | champions                                                       | **shared 常數**    |
 
-理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益，且引入額外失敗模式。房間整個生命週期完全在記憶體跑（roomId 由 `crypto.randomUUID()` 產生）；DB 寫入只發生在 **1 個時點**：
+理由：單一房間生命週期約 60 秒、socket 事件高頻；逐筆寫 DB 對展示專案無收益。房間整個生命週期完全在記憶體跑（roomId 由 `crypto.randomUUID()` 產生）；DB 寫入只發生在 **1 個時點**：
 
 1. **結算**：`INSERT draft_results x4`（lock-in 結束時）
 
@@ -95,7 +95,6 @@ CREATE TABLE draft_results (
   completed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (room_id, user_id)
 );
-CREATE INDEX idx_results_user ON draft_results(user_id);
 ```
 
 說明：
