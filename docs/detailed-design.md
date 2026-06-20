@@ -17,24 +17,6 @@
 | 6   | Realtime / Reconnect | Socket.IO 連線、斷線 grace period、房間作廢                 |
 | 7   | Frontend Shell       | 條件渲染、Zustand store、Champion 常數載入、Socket 生命週期 |
 
-依賴方向（A → B 表示 A 依賴 B）：
-
-```mermaid
-flowchart LR
-  FE[Frontend Shell] --> Auth
-  FE --> MM[Matchmaking]
-  FE --> DE[Draft Engine]
-  FE --> Trade
-  FE --> RT[Realtime]
-  MM --> DE
-  DE --> Trade
-  DE --> RT
-  DE --> DL[Data Layer]
-  Trade --> DE
-  RT --> Auth
-  Auth --> DL
-```
-
 ---
 
 ## 範疇邊界
@@ -197,7 +179,6 @@ sequenceDiagram
   participant C as Client
   participant MM as Matchmaker
   participant DE as Draft Engine
-  participant DB as PostgreSQL
   participant Lobby as All Lobby Clients
   participant Room as Matched 4 Clients
 
@@ -216,7 +197,7 @@ sequenceDiagram
 ### 3.4 規則
 
 - 同一 `userId` 重複 `queue:join` → 視為 no-op
-- 佇列中玩家斷線 → 從佇列移除、廣播 `queue:update`
+- 提供 `leave(userId)`：從佇列移除並廣播 `queue:update`
 - 玩家收到 `room:start` 後，client 自動 emit `room:join { roomId }`（由 Realtime 模組接手）
 
 ### 3.5 前端 Lobby
@@ -331,7 +312,7 @@ interface PlayerState {
 | -------------- | ----------------------------------------------------- | ------------------------- |
 | `pick:initial` | phase=initial-pick、championId ∈ allocated、尚未 pick | `error { code, message }` |
 | `pick:bench`   | phase=bench-trade、championId ∈ bench                 | `error { code, message }` |
-| `room:join`    | userId 屬於該 roomId                                  | 斷線                      |
+| `room:join`    | userId 屬於該 roomId                                  | `error { code, message }` |
 
 **錯誤策略**：非法操作只回 `error` 給該 client，不踢人、不中斷房間（避免少數 client bug 拖垮整局）。
 
@@ -372,7 +353,7 @@ interface TradeRequest {
 ```mermaid
 sequenceDiagram
   participant A as Client A
-  participant S as Server (Draft Engine)
+  participant S as Server (DraftRoom)
   participant B as Client B
 
   A->>S: trade:request { targetUserId=B, offer, want }
@@ -389,7 +370,6 @@ sequenceDiagram
       S->>S: 原子互換 A.currentChampion ↔ B.currentChampion
       S-->>A: trade:resolved { tradeId, accepted=true }
       S-->>B: trade:resolved { tradeId, accepted=true }
-      S-->>All: room:state
     else B 拒絕 / 10s 逾時
       B->>S: trade:respond { tradeId, accept=false }
       Note over S: 或 expiresAt 到期
@@ -407,7 +387,7 @@ sequenceDiagram
 
 ### 5.5 競態處理
 
-- 所有 trade / pick 事件在單一 room 物件內 **sequential 處理**（Node.js 單執行緒 event loop，不需鎖原語）
+- 所有 trade / pick 事件在單一 room 物件內 **sequential 處理**（Node.js 單執行緒 event loop，handler 同步執行不中途 await，天然序列化、不需額外加鎖）
 - 「A 與 C 同時對 B 發起申請」：先到達的成功建立鎖定 B；後到達者收到 `error { code: 'target-busy' }`
 - 「A 已有 pending（無論發起或接收），又發 `trade:request`」：拒絕，回 `error { code: 'has-pending-trade' }`
 - 「A 已有 pending，C 嘗試對 A 發起」：拒絕，回 `error { code: 'target-busy' }`
@@ -428,12 +408,12 @@ sequenceDiagram
 
 **廣播範圍**：
 
-| 事件             | 收件對象  | 說明                                                        |
-| ---------------- | --------- | ----------------------------------------------------------- |
-| `trade:incoming` | 接收方 B  | 只有被申請者需要彈窗                                        |
-| `trade:pending`  | 發起方 A  | 只有發起者需要「等待回應中」狀態                            |
-| `trade:resolved` | 雙方 A、B | 用於關閉 modal / 顯示結果；其他玩家未知此交易存在，不需發送 |
-| `room:state`     | 房內全員  | 接受成功時棋盤狀態改變，其他玩家靠這個看到英雄互換          |
+| 事件             | 收件對象  | 說明                                                                                                         |
+| ---------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
+| `trade:incoming` | 接收方 B  | 只有被申請者需要彈窗                                                                                         |
+| `trade:pending`  | 發起方 A  | 只有發起者需要「等待回應中」狀態                                                                             |
+| `trade:resolved` | 雙方 A、B | 用於關閉 modal / 顯示結果；其他玩家未知此交易存在，不需發送                                                  |
+| `room:state`     | 房內全員  | 每次 trade 狀態變化（申請建立 / 接受 / 拒絕 / 取消 / 逾時）皆廣播，同步 pendingTrades 與棋盤；不只接受成功時 |
 
 ---
 
@@ -488,7 +468,7 @@ sequenceDiagram
 ```
 
 > **設計決策：重整 / 關閉分頁 = 主動離開 → abort**
-> 重整或關分頁視為上面流程的「主動關閉」分支，直接走 abort，**不**做 server-side 自動 rejoin、也**不**在 client persist `currentRoom`。取捨：要讓重整能回房，得在 server 端把房間狀態撐更久 + 一套 rejoin 協議，或在 client 持久化房號——兩者都為一個低頻情境引入額外複雜度與失敗模式，對 60 秒生命週期的房間不划算。
+> 重整或關分頁：server 分不出「主動關閉」與「網路抖動」，一律走 15 秒寬限、逾時 abort；差別只在 client 端 store 連同 `currentRoom` 消失，不會自動 rejoin。我們刻意**不**做 server-side rejoin、也**不** persist `currentRoom`，否則得把房間狀態撐更久 + 一套 rejoin 協議，或在 client 存房號，為低頻情境引入複雜度與失敗模式，對 60 秒的房間不划算。
 > 注意這跟「斷線重連」是兩回事：**同分頁的網路抖動**，socket.io client 會自動重連，store 還在記憶體會自動 emit `room:join`，所以 15 秒寬限內仍能無縫回房。被當成離開的只有「整個 page context 沒了」的重整 / 關閉。
 
 ### 6.4 新增介面
